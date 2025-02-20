@@ -1,0 +1,11 @@
+{
+  // https://nuxt.com/docs/guide/concepts/typescript
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "@amap/amap-jsapi-types",
+      "@element-plus/icons-vue",
+      "@element-plus/icons-svg"
+    ]
+  }
+}
