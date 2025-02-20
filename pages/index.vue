@@ -2,7 +2,8 @@
     <el-container class="h-screen">
         <!-- 地图区域 (占70%) -->
         <el-main class="p-0 h-screen">
-            <div id="map-container" class="h-full" />
+            <MapBundle :location="currentLocation" :location-name="currentLocationName"
+                @update:location="onUpdateLocation" @update:location-name="onUpdateLocationName" />
         </el-main>
 
         <!-- 侧边栏 (占30%) -->
@@ -65,49 +66,14 @@
     </el-container>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Search, Setting } from '@element-plus/icons-vue'
-const { $amap } = useNuxtApp()
-const currentLocation = ref([116.397428, 39.90923])
-const currentLocationName = ref('')
-
-onMounted(async () => {
-    const location = await getCurrentLocation()
-    currentLocation.value = [location.coords.longitude, location.coords.latitude]
-    $amap.plugin('AMap.Geocoder', () => {
-        const geocoder = new $amap.Geocoder()
-        console.log("++++ geocoder: ", geocoder)
-        geocoder.getAddress(currentLocation.value, (status, result) => {
-            if (status === 'complete' && result.info === 'OK') {
-                console.log('++++++ result: ', result)
-                currentLocationName.value = result.regeocode.formattedAddress
-            }
-        })
-    })
-    const map = new $amap.Map('map-container', {
-        zoom: 12,
-        center: currentLocation.value,
-    })
-    const marker = new $amap.Marker({
-        position: currentLocation.value,
-        map: map,
-        draggable: true,
-    })
-    marker.on('dragend', (e) => {
-        currentLocation.value = [e.lnglat.lng, e.lnglat.lat]
-        console.log("from dragend lnglat: ", e.lnglat)
-        console.log("from dragend currentLocation: ", currentLocation.value)
-    })
-    watch(currentLocation, (newLocation) => {
-        const geocoder = new $amap.Geocoder()
-        console.log("geocoder: ", geocoder)
-        console.log("newLocation: ", newLocation)
-        geocoder.getAddress(newLocation, (status, result) => {
-            if (status === 'complete' && result.info === 'OK') {
-                console.log('result: ', result)
-                currentLocationName.value = result.regeocode.formattedAddress
-            }
-        })
-    })
-})
+const currentLocation = ref([112.69167, 35.148894])
+const currentLocationName = ref('旮旯')
+function onUpdateLocation(location: [number, number]) {
+    currentLocation.value = location
+}
+function onUpdateLocationName(locationName: string) {
+    currentLocationName.value = locationName
+}
 </script>

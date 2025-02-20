@@ -4,8 +4,7 @@
   "compilerOptions": {
     "types": [
       "@amap/amap-jsapi-types",
-      "@element-plus/icons-vue",
-      "@element-plus/icons-svg"
+      "@element-plus/icons-vue"
     ]
   }
 }
