@@ -9,6 +9,14 @@
         <!-- 侧边栏 (占30%) -->
         <el-aside width="30%" class="border-l bg-gray-50">
             <el-scrollbar class="h-full p-4">
+                <el-form label-width="100px">
+                    <el-form-item label="经度">
+                        <el-input v-model="form.longitude" v-on:blur="onBlurLongitude" placeholder="请输入经度" />
+                    </el-form-item>
+                    <el-form-item label="纬度">
+                        <el-input v-model="form.latitude" v-on:blur="onBlurLatitude" placeholder="请输入纬度" />
+                    </el-form-item>
+                </el-form>
                 <!-- 用户信息 -->
                 <el-card class="mb-4">
                     <div class="flex items-center gap-">
@@ -68,12 +76,28 @@
 
 <script setup lang="ts">
 import { Search, Setting } from '@element-plus/icons-vue'
-const currentLocation = ref([112.69167, 35.148894])
+import type { MapLocation } from '~/types'
+const currentLocation = ref<MapLocation>({
+    longitude: 112.69167,
+    latitude: 35.148894
+})
 const currentLocationName = ref('旮旯')
-function onUpdateLocation(location: [number, number]) {
+function onUpdateLocation(location: MapLocation) {
     currentLocation.value = location
 }
 function onUpdateLocationName(locationName: string) {
     currentLocationName.value = locationName
 }
+const form = ref({
+    longitude: 112.69167,
+    latitude: 35.148894,
+    locationName: '旮旯'
+})
+function onBlurLongitude(e: Event) {
+    currentLocation.value.longitude = form.value.longitude;
+}
+function onBlurLatitude(e: Event) {
+    currentLocation.value.latitude = form.value.latitude;
+}
+
 </script>

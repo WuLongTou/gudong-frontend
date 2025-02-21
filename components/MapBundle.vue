@@ -4,52 +4,56 @@
 
 <script setup lang="ts">
 interface Props {
-    location: [number, number]
+    location: MapLocation
     locationName: string
 }
 interface EmitProps {
-    location: [number, number]
-    locationName: string
+    "update:location": [MapLocation]
+    "update:locationName": [string]
 }
 
 import { onMounted } from 'vue';
+import type { MapLocation } from '~/types';
 const { $amap } = useNuxtApp()
 const props = defineProps<Props>()
-const currentLocation = ref(props.location)
-const currentLocationName = ref(props.locationName)
+const currentLocation = toRef(props.location)
 const emits = defineEmits<EmitProps>()
 
 onMounted(async () => {
     watch(currentLocation, (newLocation) => {
-        const geocoder = new $amap.Geocoder()
-        console.log("geocoder: ", geocoder)
-        console.log("newLocation: ", newLocation)
-        geocoder.getAddress(newLocation, (status, result) => {
-            if (status === 'complete' && result.info === 'OK') {
-                console.log('result: ', result)
-                currentLocationName.value = result.regeocode.formattedAddress
-            }
+        map.setCenter([currentLocation.value.longitude, currentLocation.value.latitude])
+        marker.setPosition([currentLocation.value.longitude, currentLocation.value.latitude])
+        AMap.plugin('AMap.Geocoder', function () {
+            const geocoder = new $amap.Geocoder()
+            geocoder.getAddress([newLocation.longitude, newLocation.latitude], (status: string, result: any) => {
+                if (status === 'complete' && result.info === 'OK') {
+                    emits('update:location', newLocation)
+                    emits('update:locationName', result.regeocode.formattedAddress as string)
+                }
+            })
         })
-        emits('update:location', newLocation)
-        emits('update:locationName', currentLocationName.value)
-    })
+    }, { deep: true })
 
-    const location = await getCurrentLocation()
-    currentLocation.value = [location.coords.longitude, location.coords.latitude]
-
+    const location = await getCurrentLocation() as GeolocationPosition
+    currentLocation.value = {
+        longitude: location.coords.longitude,
+        latitude: location.coords.latitude
+    }
     const map = new $amap.Map('map-container', {
         zoom: 12,
-        center: currentLocation.value,
+        center: [currentLocation.value.longitude, currentLocation.value.latitude],
     })
+
     const marker = new $amap.Marker({
-        position: currentLocation.value,
+        position: [currentLocation.value.longitude, currentLocation.value.latitude],
         map: map,
         draggable: true,
     })
     marker.on('dragend', (e) => {
-        currentLocation.value = [e.lnglat.lng, e.lnglat.lat]
-        console.log("from dragend lnglat: ", e.lnglat)
-        console.log("from dragend currentLocation: ", currentLocation.value)
+        currentLocation.value = {
+            longitude: e.lnglat.lng,
+            latitude: e.lnglat.lat
+        }
     })
 })
 </script>
