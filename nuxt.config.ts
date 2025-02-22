@@ -7,7 +7,7 @@ export default defineNuxtConfig({
       enabled: true
     }
   },
-  modules: ['@element-plus/nuxt', '@nuxtjs/tailwindcss', '@vueuse/nuxt',],
+  modules: ['@element-plus/nuxt', '@nuxtjs/tailwindcss'],
   runtimeConfig: {
     public: {
       amapApiKey: process.env.NUXT_PUBLIC_AMAP_API_KEY,

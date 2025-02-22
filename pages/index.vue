@@ -5,7 +5,6 @@
             <MapBundle :location="currentLocation" :location-name="currentLocationName"
                 @update:location="onUpdateLocation" @update:location-name="onUpdateLocationName" />
         </el-main>
-
         <!-- 侧边栏 (占30%) -->
         <el-aside width="30%" class="border-l bg-gray-50">
             <el-scrollbar class="h-full p-4">
@@ -84,6 +83,8 @@ const currentLocation = ref<MapLocation>({
 const currentLocationName = ref('旮旯')
 function onUpdateLocation(location: MapLocation) {
     currentLocation.value = location
+    form.value.longitude = location.longitude
+    form.value.latitude = location.latitude
 }
 function onUpdateLocationName(locationName: string) {
     currentLocationName.value = locationName
