@@ -1,75 +1,70 @@
-# Nuxt Minimal Starter
+# GeoChat - 实时地理位置社交应用
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+基于Nuxt 3构建的实时地理位置聊天应用，支持基于位置的动态社交互动
 
-## Setup
+## 主要功能
 
-Make sure to install dependencies:
+- 📍 实时地理位置共享
+- 🌍 基于地理围栏的聊天室
+- 🗺️ 交互式地图浏览
+- 🔥 热点区域发现
+- 📱 移动端位置适配
+- 🔒 隐私保护模式
 
+## 快速开始
+
+### 环境要求
+- Node.js 18+
+- 现代浏览器（需支持Geolocation API）
+- npm/pnpm/yarn
+
+### 安装依赖
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+# 或
+npm install
 ```
 
-## Development Server
+### 配置环境变量
+创建`.env`文件：
+```env
+NUXT_PUBLIC_AMAP_API_KEY=高德api key
+NUXT_PUBLIC_AMAP_SECRET_KEY=高德密钥
+```
 
-Start the development server on `http://localhost:3000`:
-
+### 启动开发服务器
 ```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+# 访问 http://localhost:3000
 ```
 
-## Production
+## 项目结构
 
-Build the application for production:
+```tree
+├── assets/          # 静态资源
+├── components/      # 地图组件/聊天组件
+├── composables/     # 地理位置逻辑
+├── layouts/         # 页面布局
+├── pages/          # 主界面/设置页
+├── public/          # 地图标记图标
+├── server/          # 位置数据处理
+├── utils/           # 地理工具函数
+└── app.vue          # 主入口文件
+```
 
+## 技术栈
+- 🚀 Nuxt 3 - 全栈框架
+- 🗺️ Leaflet/Mapbox - 地图引擎
+- 📡 WebSocket - 实时通信
+- 📍 Geolocation API - 位置服务
+- 🎨 Tailwind CSS - 样式设计
+- 📦 Pinia - 状态管理
+
+## 构建生产
 ```bash
-# npm
-npm run build
-
-# pnpm
 pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
 pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## 隐私声明
+本应用严格遵循W3C地理位置服务标准，用户位置数据需明确授权后使用
