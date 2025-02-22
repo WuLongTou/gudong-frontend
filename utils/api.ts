@@ -3,9 +3,9 @@ import type {
     NewGroupRequest,
     NewGroupResponse,
     QueryGroupInfoRequestByName,
-    QueryGroupInfoResponseByName,
     QueryGroupInfoRequestById,
-    QueryGroupInfoResponseById,
+    QueryGroupInfoRequestByLocation,
+    QueryGroupInfoResponse,
     JoinGroupRequest,
     JoinGroupResponse,
     LeaveGroupRequest,
@@ -24,10 +24,15 @@ export const createGroup = (data: NewGroupRequest) => {
 
 // 根据名称查询群组
 export const queryGroupsByName = (data: QueryGroupInfoRequestByName) => {
-    return post_wrapper<QueryGroupInfoResponseByName[]>('/group/query-by-name', data);
+    return post_wrapper<QueryGroupInfoResponse[]>('/group/query-by-name', data);
 };
 
 // 加入群组
 export const joinGroup = (data: JoinGroupRequest) => {
     return post_wrapper<JoinGroupResponse>('/group/join', data);
-}; 
+};
+
+// 根据位置查询群组
+export const queryGroupsByLocation = (data: QueryGroupInfoRequestByLocation) => {
+    return post_wrapper<QueryGroupInfoResponse[]>('/group/query-by-location', data);
+};

@@ -13,7 +13,7 @@ interface NewGroupResponse {
 interface QueryGroupInfoRequestById {
     group_id: string
 }
-interface QueryGroupInfoResponseById {
+interface QueryGroupInfoResponse {
     group_id: string
     name: string
     location: MapLocation
@@ -24,12 +24,9 @@ interface QueryGroupInfoResponseById {
 interface QueryGroupInfoRequestByName {
     name: string
 }
-interface QueryGroupInfoResponseByName {
-    group_id: string
-    name: string
+
+interface QueryGroupInfoRequestByLocation {
     location: MapLocation
-    location_name: string
-    member_count: number
 }
 
 interface JoinGroupRequest {
@@ -75,9 +72,9 @@ export type {
     NewGroupRequest,
     NewGroupResponse,
     QueryGroupInfoRequestById,
-    QueryGroupInfoResponseById,
     QueryGroupInfoRequestByName,
-    QueryGroupInfoResponseByName,
+    QueryGroupInfoRequestByLocation,
+    QueryGroupInfoResponse,
     JoinGroupRequest,
     JoinGroupResponse,
     LeaveGroupRequest,

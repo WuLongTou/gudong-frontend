@@ -25,6 +25,8 @@
     "@amap/amap-jsapi-types": "^0.0.15",
     "@element-plus/nuxt": "^1.1.1",
     "@nuxt/devtools": "^2.1.0",
-    "@nuxtjs/tailwindcss": "^6.13.1"
+    "@nuxtjs/tailwindcss": "^6.13.1",
+    "@types/lodash-es": "^4.17.12",
+    "nuxt-lodash": "^2.5.3"
   }
 }
