@@ -10,7 +10,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       amapApiKey: process.env.NUXT_PUBLIC_AMAP_API_KEY,
-      amapSecretKey: process.env.NUXT_PUBLIC_AMAP_SECRET_KEY
+      amapSecretKey: process.env.NUXT_PUBLIC_AMAP_SECRET_KEY,
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASEURL
     }
   },
   modules: ['@element-plus/nuxt', '@nuxtjs/tailwindcss']
