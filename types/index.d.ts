@@ -1,4 +1,4 @@
-import { MapLocation } from "./MapTypes"
+import { MapLocation } from "./map_type"
 export type { MapLocation }
 
 export type {
@@ -15,4 +15,4 @@ export type {
     SendMessageToGroupResponse,
     QueryMessageFromGroupRequest,
     QueryMessageFromGroupResponse,
-} from "./GroupType"
+} from "./group_type"

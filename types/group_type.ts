@@ -31,15 +31,20 @@ interface QueryGroupInfoRequestByLocation {
 
 interface JoinGroupRequest {
     group_id: string
-    user_id: string
     room_access_token?: string
 }
 interface JoinGroupResponse {
 }
 
+interface KeepAliveInGroupRequest {
+    group_id: string
+}
+
+interface KeepAliveInGroupResponse {
+}
+
 interface LeaveGroupRequest {
     group_id: string
-    user_id: string
     room_access_token?: string
 }
 
@@ -48,8 +53,7 @@ interface LeaveGroupResponse {
 
 interface SendMessageToGroupRequest {
     group_id: string
-    user_id: string
-    message: string
+    content: string
 }
 interface SendMessageToGroupResponse {
 }
@@ -60,12 +64,10 @@ interface QueryMessageFromGroupRequest {
     end_timestamp: number
 }
 interface QueryMessageFromGroupResponse {
-    id: string
-    messages: {
-        user_id: string
-        message: string | null
-        timestamp: number
-    }[]
+    sender_id: string
+    sender_name: string
+    message_content: string
+    timestamp: number
 }
 
 export type {
@@ -83,5 +85,7 @@ export type {
     SendMessageToGroupResponse,
     QueryMessageFromGroupRequest,
     QueryMessageFromGroupResponse,
+    KeepAliveInGroupRequest,
+    KeepAliveInGroupResponse,
 }
 
