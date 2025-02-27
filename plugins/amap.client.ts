@@ -4,6 +4,7 @@ declare global {
     interface Window {
         _AMapSecurityConfig: {
             securityJsCode?: string
+            serviceHost?: string
         }
     }
 }
@@ -11,7 +12,7 @@ declare global {
 export default defineNuxtPlugin(async (nuxtApp) => {
     const runtimeConfig = useRuntimeConfig()
     window._AMapSecurityConfig = {
-        securityJsCode: runtimeConfig.public.amapSecretKey
+        serviceHost: runtimeConfig.public.amapServiceHost
     }
 
     // 异步加载高德地图

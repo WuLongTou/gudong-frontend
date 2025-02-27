@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import type { QueryGroupInfoResponse } from '~/types';
 
-defineProps<{
+const props = defineProps<{
     groups: QueryGroupInfoResponse[]
     loading?: boolean
     showJoinButton?: boolean
@@ -37,4 +37,8 @@ defineEmits<{
     (e: 'select', group: QueryGroupInfoResponse): void
     (e: 'join', groupId: string): void
 }>()
+
+onMounted(() => {
+    console.log('groups', props.groups)
+})
 </script>
