@@ -10,11 +10,9 @@
                         位置：{{ group.location_name }} · 成员 {{ group.member_count }} 人
                     </p>
                 </div>
-                <NuxtLink :to="`/group_chat?group_id=${group.group_id}`">
-                    <el-button v-if="showJoinButton" size="small">
-                        加入
-                    </el-button>
-                </NuxtLink>
+                <el-button v-if="showJoinButton" size="small" @click="handleJoinGroup(group)">
+                    加入
+                </el-button>
             </div>
             <div v-if="groups.length === 0" class="text-center text-gray-400">
                 {{ loading ? '加载中...' : '暂无数据' }}
@@ -24,19 +22,22 @@
 </template>
 
 <script setup lang="ts">
-import type { QueryGroupInfoResponse } from '~/types';
+import type { GroupInfo } from '~/types';
 
 const props = defineProps<{
-    groups: QueryGroupInfoResponse[]
+    groups: GroupInfo[]
     loading?: boolean
     showJoinButton?: boolean
     showScroll?: boolean
 }>()
 
-defineEmits<{
-    (e: 'select', group: QueryGroupInfoResponse): void
-    (e: 'join', groupId: string): void
+const emit = defineEmits<{
+    (e: 'join', group: GroupInfo): void
 }>()
+
+const handleJoinGroup = (group: GroupInfo) => {
+    emit('join', group)
+}
 
 onMounted(() => {
     console.log('groups', props.groups)

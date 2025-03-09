@@ -51,10 +51,10 @@
 </template>
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
-import type { MapLocation, NewGroupResponse, QueryGroupInfoResponse } from '~/types';
+import type { MapLocation, GroupInfo, QueryGroupInfoByIdRequest, QueryGroupInfoByNameRequest, QueryGroupInfoByLocationRequest, JoinGroupResponse } from '~/types';
 import { ref, watchEffect } from 'vue';
 import { ElMessage } from 'element-plus';
-import { createGroup, queryGroupsByName } from '../utils/api';
+import { createGroup, queryGroupsByName, queryGroupsByLocation, joinGroup } from '../utils/api';
 import { debounce } from 'lodash-es';
 import GroupList from './GroupList.vue'
 import type { AxiosResponse } from 'axios';
@@ -66,10 +66,10 @@ const props = defineProps<{
 }>()
 
 const wantedGroupName = ref('')
-const groupsNearby = ref<QueryGroupInfoResponse[]>([])
+const groupsNearby = ref<GroupInfo[]>([])
 const showResults = ref(false);
 const searching = ref(false);
-const searchResults = ref<QueryGroupInfoResponse[]>([]);
+const searchResults = ref<GroupInfo[]>([]);
 const showCreateDialog = ref(false)
 const dialogForm = ref({
     name: ''
@@ -89,14 +89,14 @@ const handleSearchInput = debounce(async () => {
     try {
         searching.value = true;
         showResults.value = true;
-        const { data: { code, content, error_message } }: AxiosResponse<Result<QueryGroupInfoResponse[]>> = await queryGroupsByName({
+        const { code, msg, resp_data }: Result<GroupInfo[]> = await queryGroupsByName({
             name: wantedGroupName.value.trim()
         });
         if (code === 0) {
-            searchResults.value = content;
+            searchResults.value = resp_data;
         }
         else {
-            ElMessage.error(error_message || '搜索失败')
+            ElMessage.error(msg || '搜索失败')
         }
     } catch (error) {
         const err = error as Error
@@ -107,7 +107,7 @@ const handleSearchInput = debounce(async () => {
 }, 500);
 
 // 处理群组选择
-const handleSelectGroup = (group: QueryGroupInfoResponse) => {
+const handleSelectGroup = (group: GroupInfo) => {
     console.log('选中群组', group);
     showResults.value = false;
 };
@@ -115,15 +115,17 @@ const handleSelectGroup = (group: QueryGroupInfoResponse) => {
 // 获取附近的群组
 const getNearbyGroups = async () => {
     try {
-        const { data: { code, content, error_message } }: AxiosResponse<Result<QueryGroupInfoResponse[]>> = await queryGroupsByLocation({
-            location: props.location
+        const { code, msg, resp_data }: Result<GroupInfo[]> = await queryGroupsByLocation({
+            latitude: props.location.latitude,
+            longitude: props.location.longitude,
+            radius: 1000
         });
         if (code === 0) {
-            groupsNearby.value = content;
+            groupsNearby.value = resp_data;
             console.log('获取附近群组', groupsNearby.value);
         }
         else {
-            ElMessage.error(error_message || '获取附近群组失败')
+            ElMessage.error(msg || '获取附近群组失败')
         }
     } catch (error) {
         const err = error as Error
@@ -138,9 +140,12 @@ const handleCreateGroup = async () => {
     }
 
     try {
-        const { data: { code, content, error_message } }: AxiosResponse<Result<NewGroupResponse>> = await createGroup({
+        const { code, msg, resp_data }: Result<GroupInfo> = await createGroup({
             name: dialogForm.value.name.trim(),
-            location: props.location
+            location_name: props.locationName,
+            latitude: props.location.latitude,
+            longitude: props.location.longitude,
+            description: ''
         })
 
         if (code === 0) {
@@ -150,7 +155,7 @@ const handleCreateGroup = async () => {
             getNearbyGroups() // 刷新列表
         }
         else {
-            ElMessage.error(error_message || '创建群组失败')
+            ElMessage.error(msg || '创建群组失败')
         }
     } catch (error) {
         const err = error as Error
@@ -158,8 +163,39 @@ const handleCreateGroup = async () => {
     }
 }
 
-function handleJoinGroup(groupId: string) {
-    console.log('加入群组', groupId);
+async function handleJoinGroup(group: GroupInfo) {
+    console.log('加入群组', group);
     showResults.value = false;
+    if (group.is_need_password) {
+        ElMessage.warning('该群组需要密码，请输入密码')
+        ElMessageBox.prompt('请输入密码', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            inputPattern: /^\d{6}$/,
+            inputErrorMessage: '密码必须为6位数字'
+        }).then(async ({ value }) => {
+            const { code, msg, resp_data }: Result<JoinGroupResponse> = await joinGroup({
+                group_id: group.group_id,
+                password: value
+            })
+            if (code === 0) {
+                navigateTo(`/group_chat?group_id=${group.group_id}&password=${value}`)
+            }
+            else {
+                ElMessage.error(msg || '加入群组失败')
+            }
+        })
+    }
+    else {
+        const { code, msg, resp_data }: Result<JoinGroupResponse> = await joinGroup({
+            group_id: group.group_id,
+        })
+        if (code === 0) {
+            navigateTo(`/group_chat?group_id=${group.group_id}`)
+        }
+        else {
+            ElMessage.error(msg || '加入群组失败')
+        }
+    }
 }
 </script>

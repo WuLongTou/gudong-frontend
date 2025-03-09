@@ -1,98 +1,69 @@
-import type { MapLocation } from "./map_type"
-
-export interface RegisterUserRequest {
-    security_code: string;
-    public_key: JsonWebKey;
+export interface CreateRegisteredUserRequest {
+    user_id: string;
+    password: string;
+    nickname: string;
 }
 
-export interface RegisterUserResponse {
-    session_token: string;
+export interface CreateTemporaryUserRequest {
+}
+
+export interface CreateUserResponse {
     user_id: string;
-    public_key: JsonWebKey;
-    expires_at: number;
+    nickname: string;
+    token: string;
 }
 
 export interface NewGroupRequest {
     name: string
-    location: MapLocation
-}
-export interface NewGroupResponse {
-    group_id: string
-    name: string
-    location: MapLocation
     location_name: string
-    member_count: number
+    latitude: number
+    longitude: number
+    description: string
+    password?: string
 }
 
-export interface QueryGroupInfoRequestById {
-    group_id: string
-}
-export interface QueryGroupInfoResponse {
+export interface GroupInfo {
     group_id: string
     name: string
-    location: MapLocation
     location_name: string
+    description: string
     member_count: number
+    is_need_password: boolean
 }
 
-export interface QueryGroupInfoRequestByName {
+export interface QueryGroupInfoByIdRequest {
+    group_id: string
+}
+
+export interface QueryGroupInfoByNameRequest {
     name: string
 }
 
-export interface QueryGroupInfoRequestByLocation {
-    location: MapLocation
+export interface QueryGroupInfoByLocationRequest {
+    latitude: number;
+    longitude: number;
+    radius?: number;
 }
 
 export interface JoinGroupRequest {
     group_id: string
-    room_access_token?: string
+    password?: string
 }
 export interface JoinGroupResponse {
 }
 
 export interface KeepAliveInGroupRequest {
-    group_id: string
+    group_id: string;
 }
 
 export interface KeepAliveInGroupResponse {
+    last_active_time: number;
 }
 
 export interface LeaveGroupRequest {
     group_id: string
-    room_access_token?: string
 }
 
 export interface LeaveGroupResponse {
 }
 
-export interface SendMessageToGroupRequest {
-    group_id: string
-    message: string
-}
-export interface SendMessageToGroupResponse {
-}
-
-export interface QueryMessageFromGroupRequest {
-    group_id: string
-    start_timestamp: number
-    end_timestamp: number
-}
-export interface QueryMessageFromGroupResponse {
-    sender_id: string
-    sender_name: string
-    message: string
-    timestamp: number
-}
-
-export interface KeepAliveInGroupRequest {
-    group_id: string
-}
-export interface KeepAliveInGroupResponse {
-}
-
-export interface OnlineRequest {
-    user_id: string
-}
-export interface OnlineResponse {
-    token: string
-}

@@ -2,79 +2,78 @@
 import type { Result } from '@/types/common';
 import type {
     NewGroupRequest,
-    NewGroupResponse,
-    QueryGroupInfoRequestByName,
-    QueryGroupInfoRequestById,
-    QueryGroupInfoRequestByLocation,
-    QueryGroupInfoResponse,
+    QueryGroupInfoByNameRequest,
+    QueryGroupInfoByIdRequest,
+    QueryGroupInfoByLocationRequest,
+    GroupInfo,
     JoinGroupRequest,
     JoinGroupResponse,
     LeaveGroupRequest,
     LeaveGroupResponse,
-    SendMessageToGroupRequest,
-    SendMessageToGroupResponse,
-    QueryMessageFromGroupRequest,
-    QueryMessageFromGroupResponse,
-    RegisterUserRequest,
-    RegisterUserResponse,
+    CreateRegisteredUserRequest,
+    CreateUserResponse,
     KeepAliveInGroupRequest,
     KeepAliveInGroupResponse,
 } from '@/types/group_type';
-import axios, { type AxiosResponse } from 'axios';
+import type {
+    SendMessageToGroupRequest,
+    SendMessageToGroupResponse,
+    QueryMessageFromGroupRequest,
+    GroupMessage,
+} from '@/types/message_type';
+import { useNuxtApp } from '#app';
 
-// 统一响应类型封装
-type APIResponse<T> = Promise<AxiosResponse<Result<T>>>;
+// 统一响应类型
+type APIResponse<T> = Promise<Result<T>>;
 
-// 注册用户
-export const registerUser = (data: RegisterUserRequest): APIResponse<RegisterUserResponse> => {
-    return post_wrapper('/user/register', data);
+// 核心请求封装
+const api_wrapper = async <T>(method: 'get' | 'post', url: string, data?: any): Promise<Result<T>> => {
+    const { $axios } = useNuxtApp();
+    try {
+        return await $axios.request({ method, url, [method === 'get' ? 'params' : 'data']: data });
+    } catch (err) {
+        return err as Result<T>;
+    }
 };
 
-// 创建群组
-export const createGroup = (data: NewGroupRequest): APIResponse<NewGroupResponse> => {
-    return post_wrapper('/group/create', data);
-};
+// 用户相关API
+export const registerUser = (data: CreateRegisteredUserRequest): APIResponse<CreateUserResponse> =>
+    api_wrapper('post', '/users/register', data);
 
-// 根据名称查询群组
-export const queryGroupsByName = (data: QueryGroupInfoRequestByName): APIResponse<QueryGroupInfoResponse[]> => {
-    return post_wrapper('/group/query-by-name', data);
-};
+export const createTemporaryUser = (): APIResponse<CreateUserResponse> =>
+    api_wrapper('post', '/users/temporary');
 
-// 根据ID查询群组
-export const queryGroupById = (data: QueryGroupInfoRequestById): APIResponse<QueryGroupInfoResponse> => {
-    return post_wrapper('/group/query-by-id', data);
-};
+// 群组相关API
+export const createGroup = (data: NewGroupRequest): APIResponse<GroupInfo> =>
+    api_wrapper('post', '/groups/create', data);
 
-// 根据位置查询群组
-export const queryGroupsByLocation = (data: QueryGroupInfoRequestByLocation): APIResponse<QueryGroupInfoResponse[]> => {
-    return post_wrapper('/group/query-by-location', data);
-};
+export const queryGroupsByName = (params: QueryGroupInfoByNameRequest): APIResponse<GroupInfo[]> =>
+    api_wrapper('get', '/groups/by-name', params);
 
-// 加入群组
-export const joinGroup = (data: JoinGroupRequest): APIResponse<JoinGroupResponse> => {
-    return post_wrapper('/group/join', data);
-};
+export const queryGroupById = (params: QueryGroupInfoByIdRequest): APIResponse<GroupInfo> =>
+    api_wrapper('get', '/groups/by-id', params);
 
-// 离开群组
-export const leaveGroup = (data: LeaveGroupRequest): APIResponse<LeaveGroupResponse> => {
-    return post_wrapper('/group/leave', data);
-};
-
-// 发送消息到群组
-export const sendMessageToGroup = (data: SendMessageToGroupRequest): APIResponse<SendMessageToGroupResponse> => {
-    return post_wrapper('/group/send-message', {
-        ...data,
-        token: localStorage.getItem('session_token')
+export const queryGroupsByLocation = (params: QueryGroupInfoByLocationRequest): APIResponse<GroupInfo[]> =>
+    api_wrapper('get', '/groups/by-location', {
+        latitude: params.latitude,
+        longitude: params.longitude,
+        radius: params.radius
     });
-};
 
-// 查询群组消息
-export const queryMessageFromGroup = (data: QueryMessageFromGroupRequest): APIResponse<QueryMessageFromGroupResponse[]> => {
-    return post_wrapper('/group/query-message', data);
-};
+export const joinGroup = (data: JoinGroupRequest): APIResponse<JoinGroupResponse> =>
+    api_wrapper('post', '/groups/join', data);
 
-// 保活
-export const keepAliveInGroup = (data: KeepAliveInGroupRequest): APIResponse<KeepAliveInGroupResponse> => {
-    return post_wrapper('/group/keep-alive', data);
-};
+export const leaveGroup = (data: LeaveGroupRequest): APIResponse<LeaveGroupResponse> =>
+    api_wrapper('post', '/groups/leave', data);
+
+// 消息相关API
+export const sendMessageToGroup = (data: SendMessageToGroupRequest): APIResponse<SendMessageToGroupResponse> =>
+    api_wrapper('post', '/messages/create', data);
+
+export const queryMessageFromGroup = (data: QueryMessageFromGroupRequest): APIResponse<GroupMessage[]> =>
+    api_wrapper('post', '/messages/get', data);
+
+// 保活接口
+export const keepAliveInGroup = (data: KeepAliveInGroupRequest): APIResponse<KeepAliveInGroupResponse> =>
+    api_wrapper('post', '/groups/keep_alive', data);
 

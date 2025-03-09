@@ -14,7 +14,7 @@ export default defineNuxtConfig({
     public: {
       amapApiKey: process.env.NUXT_PUBLIC_AMAP_API_KEY,
       amapServiceHost: process.env.NUXT_PUBLIC_AMAP_SERVICE_HOST,
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASEURL
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASEURL || '/api'
     }
   },
   modules: ['@element-plus/nuxt', '@nuxtjs/tailwindcss']
