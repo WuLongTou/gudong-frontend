@@ -11,8 +11,15 @@ declare global {
 
 export default defineNuxtPlugin(async (nuxtApp) => {
     const runtimeConfig = useRuntimeConfig()
-    window._AMapSecurityConfig = {
-        serviceHost: runtimeConfig.public.amapServiceHost
+    // 如果是开发模式就用amapServiceSecurityCode，否则就用amapServiceHost
+    if (process.env.NODE_ENV === 'development') {
+        window._AMapSecurityConfig = {
+            securityJsCode: runtimeConfig.public.amapServiceSecurityCode
+        }
+    } else {
+        window._AMapSecurityConfig = {
+            serviceHost: runtimeConfig.public.amapServiceHost
+        }
     }
 
     // 异步加载高德地图
