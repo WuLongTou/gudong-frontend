@@ -1,5 +1,5 @@
 <template>
-    <div id="map-container" class="h-full" />
+    <div id="map-container" class="map-container" />
 </template>
 
 <script setup lang="ts">
@@ -134,3 +134,9 @@ onMounted(async () => {
 
 })
 </script>
+
+<style scoped>
+.map-container {
+    height: 100%;
+}
+</style>

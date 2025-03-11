@@ -1,19 +1,16 @@
 <template>
-    <div class="min-h-screen w-full flex items-center justify-center p-0 bg-gradient-to-br from-blue-50 to-purple-50">
-        <el-card
-            class="responsive-card w-[90vw] max-w-[600px] min-h-[40vh] shadow-xl rounded-2xl m-2 xl:flex xl:flex-col xl:justify-between">
+    <div class="index-container">
+        <el-card class="responsive-card">
             <template #header>
-                <div class="text-center space-y-[clamp(0.5rem,1.5vh,2rem)]">
-                    <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-blue-600"><span
-                            class="inline-block animate-move-around">🌏</span> 地理社交空间</h1>
-                    <p class="text-gray-500 text-[clamp(0.875rem,1.2vw,1.125rem)]">探索你身边的实时社交圈</p>
+                <div class="header-content">
+                    <h1 class="main-title"><span class="animate-move-around">🌏</span> 地理社交空间</h1>
+                    <p class="subtitle">探索你身边的实时社交圈</p>
                 </div>
             </template>
 
-            <div class="flex flex-col gap-6">
+            <div class="form-container">
                 <!-- 访客入口 -->
-                <el-button type="primary" plain size="large" @click="handleGuestEntry"
-                    class="w-full text-[clamp(1rem,1.5vw,1.25rem)] py-[1.5vh]">
+                <el-button type="primary" plain size="large" @click="handleGuestEntry" class="full-width-button">
                     🚀 立即体验
                 </el-button>
 
@@ -21,32 +18,32 @@
 
                 <!-- 注册表单 -->
                 <el-form :model="form" :rules="rules" ref="registerForm" @submit.prevent="handleRegister">
-                    <el-form-item prop="user_id" class="mb-6">
+                    <el-form-item prop="user_id" class="form-item-margin">
                         <el-input v-model="form.nickname" placeholder="设置昵称（2-24位）" clearable size="large" show-password
-                            :prefix-icon="Lock" class="w-full" :style="{
+                            :prefix-icon="Lock" class="responsive-input" :style="{
                                 height: 'clamp(40px, 5vh, 60px)',
                                 fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
                             }" />
                         <el-input v-model="form.user_id" placeholder="设置用户ID（6-24位）" clearable size="large"
-                            show-password :prefix-icon="Lock" class="w-full" :style="{
+                            show-password :prefix-icon="Lock" class="responsive-input" :style="{
                                 height: 'clamp(40px, 5vh, 60px)',
                                 fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
                             }" />
                         <el-input v-model="form.password" placeholder="设置密码（6-24位）" clearable size="large" show-password
-                            :prefix-icon="Lock" class="w-full" :style="{
+                            :prefix-icon="Lock" class="responsive-input" :style="{
                                 height: 'clamp(40px, 5vh, 60px)',
                                 fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
                             }" />
                     </el-form-item>
 
                     <el-button type="primary" native-type="submit" :loading="isSubmitting" size="large"
-                        class="w-full text-[clamp(1rem,1.5vw,1.25rem)] py-[1.5vh]">
+                        class="full-width-button">
                         {{ isSubmitting ? '注册中...' : '📝 注册新用户' }}
                     </el-button>
                 </el-form>
             </div>
 
-            <div class="mt-6 text-center text-sm text-gray-500">
+            <div class="footer-note">
                 选择"立即体验"将使用临时会话，关闭浏览器后数据将清除
             </div>
         </el-card>
@@ -95,9 +92,8 @@ onMounted(() => {
 
 const handleGuestEntry = async () => {
     try {
-        const result = await createTemporaryUser();
+        const result = await createTemporaryUser({});
         if (result.code === 0) {
-            console.log("result: ", result);
             $storage.setItem('user_id', result.resp_data.user_id);
             $storage.setItem('nickname', result.resp_data.nickname);
             $storage.setItem('session_token', result.resp_data.token);
@@ -145,10 +141,110 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
+.index-container {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: linear-gradient(to bottom right, #ebf5ff, #f5f0ff);
+}
+
 .responsive-card {
+    width: 90vw;
+    max-width: 600px;
+    min-height: 40vh;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-radius: 1rem;
+    margin: 0.5rem;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.9);
+}
+
+.header-content {
+    text-align: center;
+}
+
+.header-content>* {
+    margin-bottom: clamp(0.5rem, 1.5vh, 2rem);
+}
+
+.main-title {
+    font-size: clamp(1.5rem, 5vw, 3.5rem);
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.subtitle {
+    color: #6b7280;
+    font-size: clamp(0.75rem, 1.2vw, 1.125rem);
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-item-margin {
+    margin-bottom: 1.5rem;
+}
+
+.full-width-button {
+    width: 100%;
+    font-size: clamp(0.875rem, 1.5vw, 1.25rem);
+    padding-top: min(1.5vh, 0.75rem);
+    padding-bottom: min(1.5vh, 0.75rem);
+}
+
+.responsive-input {
+    width: 100%;
+}
+
+.footer-note {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.animate-move-around {
+    display: inline-block;
+    animation: move-around 1s cubic-bezier(0.895, 0.03, 0.685, 0.22) infinite alternate;
+}
+
+@keyframes move-around {
+    0% {
+        transform: translate(0px, -15px);
+    }
+
+    100% {
+        transform: translate(0px, 15px);
+    }
+}
+
+/* 针对手机竖屏模式的优化 */
+@media (max-aspect-ratio: 2/3) {
+    .responsive-card {
+        width: 95vw;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .main-title {
+        font-size: clamp(1.5rem, 7vw, 2.5rem);
+    }
+
+    .form-container {
+        gap: 1rem;
+    }
+
+    .form-item-margin {
+        margin-bottom: 1rem;
+    }
 }
 
 @media (min-width: 640px) {
@@ -180,6 +276,9 @@ const handleRegister = async () => {
         width: 40vw;
         min-height: 20vh;
         padding: 4rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
 }
 
@@ -194,19 +293,5 @@ const handleRegister = async () => {
 .icon-size {
     width: clamp(18px, 2vw, 24px);
     height: clamp(18px, 2vw, 24px);
-}
-
-.animate-move-around {
-    animation: move-around 1s cubic-bezier(0.895, 0.03, 0.685, 0.22) infinite alternate;
-}
-
-@keyframes move-around {
-    0% {
-        transform: translate(0px, -15px);
-    }
-
-    100% {
-        transform: translate(0px, 15px);
-    }
 }
 </style>

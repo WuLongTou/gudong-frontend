@@ -1,18 +1,3 @@
-export interface CreateRegisteredUserRequest {
-    user_id: string;
-    password: string;
-    nickname: string;
-}
-
-export interface CreateTemporaryUserRequest {
-}
-
-export interface CreateUserResponse {
-    user_id: string;
-    nickname: string;
-    token: string;
-}
-
 export interface NewGroupRequest {
     name: string
     location_name: string

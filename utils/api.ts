@@ -10,8 +10,6 @@ import type {
     JoinGroupResponse,
     LeaveGroupRequest,
     LeaveGroupResponse,
-    CreateRegisteredUserRequest,
-    CreateUserResponse,
     KeepAliveInGroupRequest,
     KeepAliveInGroupResponse,
 } from '@/types/group_type';
@@ -21,13 +19,18 @@ import type {
     QueryMessageFromGroupRequest,
     GroupMessage,
 } from '@/types/message_type';
+import type {
+    CreateRegisteredUserRequest,
+    CreateUserResponse,
+    CreateTemporaryUserRequest,
+} from '@/types/user_type';
 import { useNuxtApp } from '#app';
 
 // 统一响应类型
 type APIResponse<T> = Promise<Result<T>>;
 
 // 核心请求封装
-const api_wrapper = async <T>(method: 'get' | 'post', url: string, data?: any): Promise<Result<T>> => {
+const api_wrapper = async <T>(method: 'get' | 'post' | 'put', url: string, data?: any): Promise<Result<T>> => {
     const { $axios } = useNuxtApp();
     try {
         return await $axios.request({ method, url, [method === 'get' ? 'params' : 'data']: data });
@@ -40,8 +43,9 @@ const api_wrapper = async <T>(method: 'get' | 'post', url: string, data?: any): 
 export const registerUser = (data: CreateRegisteredUserRequest): APIResponse<CreateUserResponse> =>
     api_wrapper('post', '/users/register', data);
 
-export const createTemporaryUser = (): APIResponse<CreateUserResponse> =>
+export const createTemporaryUser = (data: CreateTemporaryUserRequest): APIResponse<CreateUserResponse> =>
     api_wrapper('post', '/users/temporary');
+
 
 // 群组相关API
 export const createGroup = (data: NewGroupRequest): APIResponse<GroupInfo> =>

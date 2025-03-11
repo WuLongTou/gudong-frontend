@@ -18,5 +18,5 @@ export default defineNuxtConfig({
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASEURL || '/'
     }
   },
-  modules: ['@element-plus/nuxt', '@nuxtjs/tailwindcss']
+  modules: ['@element-plus/nuxt']
 })

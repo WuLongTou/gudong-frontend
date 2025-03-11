@@ -1,40 +1,43 @@
 <template>
-    <div class="h-screen flex flex-col">
+    <div class="chat-container">
         <!-- 头部 -->
-        <div class="border-b p-4 flex items-center justify-between bg-white">
+        <div class="chat-header">
             <div>
-                <h1 class="text-xl font-bold">{{ groupInfo.name }}</h1>
-                <p class="text-gray-500 text-sm">位置：{{ groupInfo.location_name }}</p>
+                <h1 class="group-title">{{ groupInfo.name }}</h1>
+                <p class="location-text">位置：{{ groupInfo.location_name }}</p>
             </div>
             <el-button type="primary" @click="onLeaveGroup">返回主页</el-button>
         </div>
 
         <!-- 消息区域 -->
-        <el-scrollbar class="flex-1 p-4 bg-gray-50" ref="scrollbar" @scroll="checkScrollToBottom">
-            <div class="space-y-4">
-                <div v-for="msg in messages" :key="msg.message_id" class="flex"
-                    :class="{ 'justify-end': isCurrentUser(msg.user_id), 'justify-start': !isCurrentUser(msg.user_id) }">
-                    <div class="max-w-[70%] rounded-lg p-3"
-                        :class="{ 'bg-blue-100': isCurrentUser(msg.user_id), 'bg-white': !isCurrentUser(msg.user_id) }">
-                        <p class="text-gray-800">{{ msg.nickname }}</p>
-                        <p class="text-gray-800">{{ msg.content }}</p>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs text-gray-500">{{ formatTime(msg.created_at) }}</span>
+        <el-scrollbar class="message-area" ref="scrollbar" @scroll="checkScrollToBottom">
+            <div class="message-list">
+                <div v-for="msg in messages" :key="msg.message_id" :class="[
+                    'message-item',
+                    isCurrentUser(msg.user_id) ? 'message-self' : 'message-other'
+                ]">
+                    <div :class="[
+                        'message-bubble',
+                        isCurrentUser(msg.user_id) ? 'message-bubble-self' : 'message-bubble-other'
+                    ]">
+                        <p class="message-sender">{{ msg.nickname }}</p>
+                        <p class="message-content">{{ msg.content }}</p>
+                        <div class="message-meta">
+                            <span class="message-time">{{ formatTime(msg.created_at) }}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </el-scrollbar>
-        <div v-if="showScrollButton" class="fixed bottom-20 right-6">
-            <el-button type="primary" circle @click="scrollToBottom"
-                class="opacity-80 hover:opacity-100 transition-opacity">
+        <div v-if="showScrollButton" class="scroll-button">
+            <el-button type="primary" circle @click="scrollToBottom" class="scroll-button-inner">
                 <el-icon>
                     <ArrowDown />
                 </el-icon>
             </el-button>
         </div>
         <!-- 发送消息区域 -->
-        <div class="border-t p-4 bg-white">
+        <div class="input-area">
             <el-input v-model="newMessage" placeholder="输入消息..." @keyup.enter="sendMessage" :maxlength="200"
                 show-word-limit clearable>
                 <template #append>
@@ -48,7 +51,7 @@
 <script setup lang="ts">
 import { ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { sendMessageToGroup, queryMessageFromGroup, leaveGroup } from '@/utils/api'
+import { sendMessageToGroup, queryMessageFromGroup, leaveGroup, queryGroupById } from '@/utils/api'
 import type { GroupMessage } from '@/types'
 import dayjs from 'dayjs'
 import { useNuxtApp } from '#app'
@@ -65,11 +68,29 @@ const showScrollButton = ref(false)
 const getOlderMessageIntervalId = ref<NodeJS.Timeout | null>(null)
 const getLatestMessageIntervalId = ref<NodeJS.Timeout | null>(null)
 
-// 获取群组信息（需要根据你的接口实现）
-const groupInfo = ref({
-    name: '群组名称',
-    location_name: '位置名称'
+// 获取群组信息
+const groupInfo = ref<{
+    name: string;
+    location_name: string;
+}>({
+    name: '搁乐儿',
+    location_name: '搁哩拐弯'
 })
+
+// 加载群组信息
+const loadGroupInfo = async () => {
+    try {
+        const data = await queryGroupById({
+            group_id: groupId.value
+        })
+        groupInfo.value = {
+            name: data.resp_data.name,
+            location_name: data.resp_data.location_name
+        }
+    } catch (error) {
+        ElMessage.error('获取群组信息失败')
+    }
+}
 
 // 合并新收到的消息
 const mergeNewMessages = (msg_recived: GroupMessage[], show_scroll_button: boolean) => {
@@ -122,6 +143,7 @@ const sendMessage = async () => {
             group_id: groupId.value,
             content: newMessage.value.trim()
         })
+        scrollToBottom()
         newMessage.value = ''
     } catch (error) {
         ElMessage.error('发送消息失败')
@@ -180,6 +202,7 @@ const onLeaveGroup = async () => {
 }
 
 onMounted(() => {
+    loadGroupInfo()
     loadHistoryMessage()
     scrollToBottom()
     getOlderMessageIntervalId.value = setInterval(() => {
@@ -199,3 +222,173 @@ onUnmounted(() => {
     }
 })
 </script>
+
+<style scoped>
+.chat-container {
+    /* 保持fixed定位 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.chat-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: white;
+    min-height: 4rem;
+}
+
+.group-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    word-break: break-word;
+}
+
+.location-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+    word-break: break-word;
+}
+
+.message-area {
+    flex: 1;
+    padding: 1rem;
+    background-color: #f9fafb;
+}
+
+.message-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.message-item {
+    display: flex;
+}
+
+.message-self {
+    justify-content: flex-end;
+}
+
+.message-other {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    word-break: break-word;
+}
+
+.message-bubble-self {
+    background-color: #dbeafe;
+}
+
+.message-bubble-other {
+    background-color: white;
+}
+
+.message-sender {
+    color: #1f2937;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.message-content {
+    color: #1f2937;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.scroll-button {
+    position: fixed;
+    bottom: 5rem;
+    right: 1.5rem;
+    z-index: 10;
+}
+
+.scroll-button-inner {
+    opacity: 0.8;
+    transition: opacity 0.3s;
+}
+
+.scroll-button-inner:hover {
+    opacity: 1;
+}
+
+.input-area {
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem;
+    background-color: white;
+    min-height: 4rem;
+    max-height: 8rem;
+}
+
+/* 针对手机竖屏模式的优化 */
+@media (max-aspect-ratio: 2/3) {
+    .chat-header {
+        padding: 0.75rem;
+        min-height: 3.5rem;
+    }
+
+    .group-title {
+        font-size: 1.125rem;
+    }
+
+    .message-area {
+        padding: 0.75rem;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+        padding: 0.5rem;
+    }
+
+    .input-area {
+        padding: 0.75rem;
+        min-height: 3.5rem;
+    }
+
+    .scroll-button {
+        bottom: 4.5rem;
+        right: 1rem;
+    }
+}
+
+/* 针对小屏幕设备的优化 */
+@media (max-height: 500px) {
+    .chat-header {
+        min-height: 3rem;
+        padding: 0.5rem;
+    }
+
+    .input-area {
+        min-height: 3rem;
+        padding: 0.5rem;
+    }
+
+    .message-list {
+        gap: 0.5rem;
+    }
+}
+</style>

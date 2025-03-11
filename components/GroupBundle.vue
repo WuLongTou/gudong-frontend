@@ -1,6 +1,6 @@
 <template>
     <!-- 群组搜索 -->
-    <el-card class="mb-4">
+    <el-card class="group-card">
         <el-input v-model="wantedGroupName" placeholder="搜索群组" @blur="handleSearchInput" clearable>
             <template #suffix>
                 <el-icon>
@@ -8,7 +8,7 @@
                 </el-icon>
             </template>
         </el-input>
-        <el-button class="mt-2 w-full" type="primary" @click="showCreateDialog = true">
+        <el-button class="create-button" type="primary" @click="showCreateDialog = true">
             增加群组
         </el-button>
     </el-card>
@@ -21,7 +21,7 @@
             </el-form-item>
             <el-form-item label="当前位置">
                 <el-input :model-value="locationName" readonly />
-                <div class="text-gray-500 text-xs mt-1">
+                <div class="location-info">
                     坐标：{{ location.latitude.toFixed(4) }}, {{ location.longitude.toFixed(4) }}
                 </div>
             </el-form-item>
@@ -41,8 +41,8 @@
 
     <!-- 群组列表 -->
     <el-card>
-        <div class="space-y-3">
-            <div class="text-lg font-bold">
+        <div class="group-list-container">
+            <div class="group-list-title">
                 附近群组列表
             </div>
             <GroupList :groups="groupsNearby" :show-join-button="true" @join="handleJoinGroup" show-scroll />
@@ -199,3 +199,63 @@ async function handleJoinGroup(group: GroupInfo) {
     }
 }
 </script>
+
+<style scoped>
+.group-card {
+    margin-bottom: 1rem;
+}
+
+.create-button {
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.location-info {
+    color: #6b7280;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    word-break: break-word;
+}
+
+.group-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.group-list-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+/* 针对手机竖屏模式的优化 */
+@media (max-aspect-ratio: 2/3) {
+    /* 调整对话框宽度 */
+    :deep(.el-dialog) {
+        width: 90% !important;
+        max-width: 500px;
+    }
+    
+    /* 调整表单项间距 */
+    :deep(.el-form-item) {
+        margin-bottom: 0.75rem;
+    }
+    
+    /* 调整输入框大小 */
+    :deep(.el-input__inner) {
+        font-size: 0.875rem;
+        height: 2.5rem;
+    }
+}
+
+/* 针对小屏幕设备的优化 */
+@media (max-height: 600px) {
+    .group-card {
+        margin-bottom: 0.5rem;
+    }
+    
+    :deep(.el-card__body) {
+        padding: 0.75rem;
+    }
+}
+</style>
