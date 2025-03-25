@@ -51,13 +51,12 @@
 </template>
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
-import type { MapLocation, GroupInfo, QueryGroupInfoByIdRequest, QueryGroupInfoByNameRequest, QueryGroupInfoByLocationRequest, JoinGroupResponse } from '~/types';
-import { ref, watchEffect } from 'vue';
-import { ElMessage } from 'element-plus';
+import type { MapLocation, GroupInfo, JoinGroupResponse } from '~/types';
+import { ref, watch } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { createGroup, queryGroupsByName, queryGroupsByLocation, joinGroup } from '../utils/api';
 import { debounce } from 'lodash-es';
 import GroupList from './GroupList.vue'
-import type { AxiosResponse } from 'axios';
 import type { Result } from '~/types/common';
 
 const props = defineProps<{
@@ -106,12 +105,6 @@ const handleSearchInput = debounce(async () => {
     }
 }, 500);
 
-// 处理群组选择
-const handleSelectGroup = (group: GroupInfo) => {
-    console.log('选中群组', group);
-    showResults.value = false;
-};
-
 // 获取附近的群组
 const getNearbyGroups = async () => {
     try {
@@ -122,7 +115,6 @@ const getNearbyGroups = async () => {
         });
         if (code === 0) {
             groupsNearby.value = resp_data;
-            console.log('获取附近群组', groupsNearby.value);
         }
         else {
             ElMessage.error(msg || '获取附近群组失败')
@@ -164,10 +156,9 @@ const handleCreateGroup = async () => {
 }
 
 async function handleJoinGroup(group: GroupInfo) {
-    console.log('加入群组', group);
+    const router = useRouter()
     showResults.value = false;
     if (group.is_need_password) {
-        ElMessage.warning('该群组需要密码，请输入密码')
         ElMessageBox.prompt('请输入密码', {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
@@ -179,7 +170,7 @@ async function handleJoinGroup(group: GroupInfo) {
                 password: value
             })
             if (code === 0) {
-                navigateTo(`/group_chat?group_id=${group.group_id}&password=${value}`)
+                router.push(`/group_chat?group_id=${group.group_id}`)
             }
             else {
                 ElMessage.error(msg || '加入群组失败')
@@ -191,7 +182,7 @@ async function handleJoinGroup(group: GroupInfo) {
             group_id: group.group_id,
         })
         if (code === 0) {
-            navigateTo(`/group_chat?group_id=${group.group_id}`)
+            router.push(`/group_chat?group_id=${group.group_id}`)
         }
         else {
             ElMessage.error(msg || '加入群组失败')
@@ -230,17 +221,18 @@ async function handleJoinGroup(group: GroupInfo) {
 
 /* 针对手机竖屏模式的优化 */
 @media (max-aspect-ratio: 2/3) {
+
     /* 调整对话框宽度 */
     :deep(.el-dialog) {
         width: 90% !important;
         max-width: 500px;
     }
-    
+
     /* 调整表单项间距 */
     :deep(.el-form-item) {
         margin-bottom: 0.75rem;
     }
-    
+
     /* 调整输入框大小 */
     :deep(.el-input__inner) {
         font-size: 0.875rem;
@@ -253,7 +245,7 @@ async function handleJoinGroup(group: GroupInfo) {
     .group-card {
         margin-bottom: 0.5rem;
     }
-    
+
     :deep(.el-card__body) {
         padding: 0.75rem;
     }

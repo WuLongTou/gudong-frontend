@@ -12,10 +12,19 @@
         <!-- 消息区域 -->
         <el-scrollbar class="message-area" ref="scrollbar" @scroll="checkScrollToBottom">
             <div class="message-list">
-                <div v-for="msg in messages" :key="msg.message_id" :class="[
+                <div v-if="loading" class="loading-indicator">
+                    <el-icon class="is-loading"><Loading /></el-icon>
+                    <span>加载消息中...</span>
+                </div>
+                <div v-for="(msg, index) in messages" :key="msg.message_id" :class="[
                     'message-item',
-                    isCurrentUser(msg.user_id) ? 'message-self' : 'message-other'
+                    isCurrentUser(msg.user_id) ? 'message-self' : 'message-other',
+                    msg.isNew ? 'message-new' : ''
                 ]">
+                    <!-- 新消息分隔线 -->
+                    <div v-if="index === firstNewMessageIndex" class="new-message-divider">
+                        <span>新消息</span>
+                    </div>
                     <div :class="[
                         'message-bubble',
                         isCurrentUser(msg.user_id) ? 'message-bubble-self' : 'message-bubble-other'
@@ -27,21 +36,26 @@
                         </div>
                     </div>
                 </div>
+                <div v-if="messages.length === 0 && !loading" class="empty-message">
+                    <p>暂无消息，发送第一条消息吧</p>
+                </div>
             </div>
         </el-scrollbar>
         <div v-if="showScrollButton" class="scroll-button">
-            <el-button type="primary" circle @click="scrollToBottom" class="scroll-button-inner">
-                <el-icon>
-                    <ArrowDown />
-                </el-icon>
-            </el-button>
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0">
+                <el-button type="primary" circle @click="scrollToBottom" class="scroll-button-inner">
+                    <el-icon>
+                        <ArrowDown />
+                    </el-icon>
+                </el-button>
+            </el-badge>
         </div>
         <!-- 发送消息区域 -->
         <div class="input-area">
             <el-input v-model="newMessage" placeholder="输入消息..." @keyup.enter="sendMessage" :maxlength="200"
                 show-word-limit clearable>
                 <template #append>
-                    <el-button @click="sendMessage" type="primary">发送</el-button>
+                    <el-button @click="sendMessage" type="primary" :loading="sending">发送</el-button>
                 </template>
             </el-input>
         </div>
@@ -49,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { sendMessageToGroup, queryMessageFromGroup, leaveGroup, queryGroupById } from '@/utils/api'
 import type { GroupMessage } from '@/types'
@@ -61,20 +75,26 @@ const { $storage } = useNuxtApp()
 const route = useRoute()
 const groupId = ref("")
 groupId.value = route.query.group_id as string
-const messages = ref<GroupMessage[]>([])
+const messages = ref<(GroupMessage & { isNew?: boolean })[]>([])
 const newMessage = ref('')
 const scrollbar = ref()
 const showScrollButton = ref(false)
 const getOlderMessageIntervalId = ref<NodeJS.Timeout | null>(null)
 const getLatestMessageIntervalId = ref<NodeJS.Timeout | null>(null)
+const loading = ref(true)
+const sending = ref(false)
+const isAtBottom = ref(true)
+const unreadCount = ref(0)
+const firstNewMessageIndex = ref(-1)
+const lastReadMessageId = ref('')
 
 // 获取群组信息
 const groupInfo = ref<{
     name: string;
     location_name: string;
 }>({
-    name: '搁乐儿',
-    location_name: '搁哩拐弯'
+    name: '加载中...',
+    location_name: '加载中...'
 })
 
 // 加载群组信息
@@ -93,60 +113,143 @@ const loadGroupInfo = async () => {
 }
 
 // 合并新收到的消息
-const mergeNewMessages = (msg_recived: GroupMessage[], show_scroll_button: boolean) => {
-    const newMessages = msg_recived.filter((msg) => !messages.value.some((m) => m.message_id === msg.message_id))
+const mergeNewMessages = (msg_recived: GroupMessage[]) => {
+    if (msg_recived.length === 0) return false;
+
+    // 记录当前是否在底部
+    updateScrollPosition()
+
+    // 标记新消息
+    const newMessages = msg_recived.filter(
+        (msg) => !messages.value.some((m) => m.message_id === msg.message_id)
+    ).map(msg => ({
+        ...msg,
+        isNew: true
+    }))
+
     if (newMessages.length > 0) {
-        messages.value.push(...newMessages)
-        messages.value.sort((a, b) => {
+        // 保存当前最后一条消息的ID，用于标记新消息
+        if (messages.value.length > 0 && lastReadMessageId.value === '') {
+            lastReadMessageId.value = messages.value[messages.value.length - 1].message_id
+        }
+
+        // 合并消息并排序
+        messages.value = [...messages.value, ...newMessages].sort((a, b) => {
             return dayjs(a.created_at).unix() - dayjs(b.created_at).unix()
         })
-        // 显示滚动按钮
-        showScrollButton.value = show_scroll_button
+
+        // 查找第一条新消息的索引
+        if (lastReadMessageId.value && firstNewMessageIndex.value === -1) {
+            const lastReadIndex = messages.value.findIndex(m => m.message_id === lastReadMessageId.value)
+            if (lastReadIndex !== -1) {
+                firstNewMessageIndex.value = lastReadIndex + 1
+            }
+        }
+
+        // 如果在底部，自动滚动，否则更新未读数
+        if (isAtBottom.value) {
+            scrollToBottom()
+            // 已读所有消息
+            unreadCount.value = 0
+            lastReadMessageId.value = messages.value[messages.value.length - 1].message_id
+            firstNewMessageIndex.value = -1
+        } else {
+            // 更新未读消息数
+            const myUserId = $storage.getItem('user_id')
+            const newUnreadMessages = newMessages.filter(msg => msg.user_id !== myUserId)
+            unreadCount.value += newUnreadMessages.length
+            showScrollButton.value = true
+        }
+        
+        return true
     }
+    return false
 }
 
 // 获取消息历史
 const loadHistoryMessage = async () => {
+    if (loading.value) return
+    
+    loading.value = true
     try {
         const data = await queryMessageFromGroup({
             group_id: groupId.value,
             limit: -20
         })
-        mergeNewMessages(data.resp_data, false)
-        console.log("messages: ", messages.value)
+        const hasNewMessages = mergeNewMessages(data.resp_data)
+        
+        // 首次加载后滚动到底部
+        if (messages.value.length > 0 && hasNewMessages) {
+            nextTick(() => {
+                scrollToBottom()
+                // 初始加载完成后，清除新消息标记
+                messages.value.forEach(msg => msg.isNew = false)
+                unreadCount.value = 0
+                lastReadMessageId.value = messages.value[messages.value.length - 1].message_id
+                firstNewMessageIndex.value = -1
+            })
+        }
     } catch (error) {
         ElMessage.error('获取消息失败')
+    } finally {
+        loading.value = false
     }
 }
 
 // 获取最新的消息
 const loadLatestMessage = async () => {
     try {
+        const lastMessageId = messages.value.length > 0 
+            ? messages.value[messages.value.length - 1].message_id 
+            : undefined
+            
         const data = await queryMessageFromGroup({
             group_id: groupId.value,
-            message_id: messages.value.length > 0 ? messages.value[0].message_id : undefined,
+            message_id: lastMessageId,
             limit: 20
         })
-        mergeNewMessages(data.resp_data, true)
-        console.log("messages: ", messages.value)
+        mergeNewMessages(data.resp_data)
     } catch (error) {
-        ElMessage.error('获取消息失败')
+        console.error('获取最新消息失败', error)
     }
+}
+
+// 更新滚动位置状态
+const updateScrollPosition = () => {
+    if (!scrollbar.value?.wrapRef) return
+    
+    const scrollTop = scrollbar.value.wrapRef.scrollTop
+    const scrollHeight = scrollbar.value.wrapRef.scrollHeight
+    const clientHeight = scrollbar.value.wrapRef.clientHeight
+    
+    // 如果滚动位置在底部附近（允许20px的误差），视为在底部
+    isAtBottom.value = scrollTop + clientHeight >= scrollHeight - 20
 }
 
 // 发送消息 
 const sendMessage = async () => {
-    if (!newMessage.value.trim()) return
+    if (!newMessage.value.trim() || sending.value) return
 
+    sending.value = true
     try {
         await sendMessageToGroup({
             group_id: groupId.value,
             content: newMessage.value.trim()
         })
-        scrollToBottom()
         newMessage.value = ''
+        
+        // 发送后立即加载新消息以看到自己发送的内容
+        await loadLatestMessage()
+        scrollToBottom()
+        
+        // 确保我的消息不会被计为未读
+        unreadCount.value = 0
+        lastReadMessageId.value = messages.value[messages.value.length - 1].message_id
+        firstNewMessageIndex.value = -1
     } catch (error) {
         ElMessage.error('发送消息失败')
+    } finally {
+        sending.value = false
     }
 }
 
@@ -155,16 +258,37 @@ const scrollToBottom = () => {
     nextTick(() => {
         scrollbar.value?.setScrollTop(scrollbar.value?.wrapRef?.scrollHeight || 0)
         showScrollButton.value = false
+        
+        // 滚动到底部时重置未读计数
+        unreadCount.value = 0
+        
+        // 标记所有消息为已读
+        messages.value.forEach(msg => msg.isNew = false)
+        
+        // 清除新消息分隔线
+        if (messages.value.length > 0) {
+            lastReadMessageId.value = messages.value[messages.value.length - 1].message_id
+        }
+        firstNewMessageIndex.value = -1
     })
 }
 
 // 监控滚动情况，如果用户已经滚动到底部，则隐藏滚动按钮
 const checkScrollToBottom = () => {
-    const scrollTop = scrollbar.value?.wrapRef?.scrollTop
-    const scrollHeight = scrollbar.value?.wrapRef?.scrollHeight
-    const clientHeight = scrollbar.value?.wrapRef?.clientHeight
-    if (scrollTop + clientHeight >= scrollHeight) {
+    updateScrollPosition()
+    
+    if (isAtBottom.value) {
         showScrollButton.value = false
+        unreadCount.value = 0
+        
+        // 标记所有消息为已读
+        messages.value.forEach(msg => msg.isNew = false)
+        
+        // 清除新消息分隔线
+        if (messages.value.length > 0) {
+            lastReadMessageId.value = messages.value[messages.value.length - 1].message_id
+        }
+        firstNewMessageIndex.value = -1
     }
 }
 
@@ -204,13 +328,11 @@ const onLeaveGroup = async () => {
 onMounted(() => {
     loadGroupInfo()
     loadHistoryMessage()
-    scrollToBottom()
-    getOlderMessageIntervalId.value = setInterval(() => {
-        loadHistoryMessage()
-    }, 5000)
+    
+    // 设置轮询间隔
     getLatestMessageIntervalId.value = setInterval(() => {
         loadLatestMessage()
-    }, 2000)
+    }, 3000)
 })
 
 onUnmounted(() => {
@@ -273,6 +395,7 @@ onUnmounted(() => {
 
 .message-item {
     display: flex;
+    position: relative;
 }
 
 .message-self {
@@ -296,6 +419,15 @@ onUnmounted(() => {
 
 .message-bubble-other {
     background-color: white;
+}
+
+.message-new .message-bubble {
+    animation: highlight 2s ease-out;
+}
+
+@keyframes highlight {
+    0% { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
 .message-sender {
@@ -342,6 +474,41 @@ onUnmounted(() => {
     background-color: white;
     min-height: 4rem;
     max-height: 8rem;
+}
+
+.new-message-divider {
+    width: 100%;
+    text-align: center;
+    margin: 0.5rem 0;
+    position: relative;
+    height: 20px;
+}
+
+.new-message-divider span {
+    display: inline-block;
+    background-color: #ef4444;
+    color: white;
+    padding: 0.15rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    color: #6b7280;
+    gap: 0.5rem;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
 }
 
 /* 针对手机竖屏模式的优化 */

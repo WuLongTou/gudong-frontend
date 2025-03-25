@@ -10,3 +10,13 @@ export interface CreateUserResponse {
     nickname: string;
     token: string;
 }
+
+export interface User {
+    user_id: string;
+    nickname: string;
+    is_temporary: boolean;
+}
+
+export interface RefreshTokenResponse {
+    token: string;
+}

@@ -8,68 +8,125 @@
                 </div>
             </template>
 
-            <div class="form-container">
-                <!-- 访客入口 -->
-                <el-button type="primary" plain size="large" @click="handleGuestEntry" class="full-width-button">
-                    🚀 立即体验
-                </el-button>
 
-                <el-divider>或</el-divider>
-
-                <!-- 注册表单 -->
-                <el-form :model="form" :rules="rules" ref="registerForm" @submit.prevent="handleRegister">
-                    <el-form-item prop="user_id" class="form-item-margin">
-                        <el-input v-model="form.nickname" placeholder="设置昵称（2-24位）" clearable size="large" show-password
-                            :prefix-icon="Lock" class="responsive-input" :style="{
-                                height: 'clamp(40px, 5vh, 60px)',
-                                fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
-                            }" />
-                        <el-input v-model="form.user_id" placeholder="设置用户ID（6-24位）" clearable size="large"
-                            show-password :prefix-icon="Lock" class="responsive-input" :style="{
-                                height: 'clamp(40px, 5vh, 60px)',
-                                fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
-                            }" />
-                        <el-input v-model="form.password" placeholder="设置密码（6-24位）" clearable size="large" show-password
-                            :prefix-icon="Lock" class="responsive-input" :style="{
-                                height: 'clamp(40px, 5vh, 60px)',
-                                fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
-                            }" />
-                    </el-form-item>
-
-                    <el-button type="primary" native-type="submit" :loading="isSubmitting" size="large"
-                        class="full-width-button">
-                        {{ isSubmitting ? '注册中...' : '📝 注册新用户' }}
-                    </el-button>
-                </el-form>
-            </div>
+            <!-- 访客入口 -->
+            <el-button type="success" plain size="large" @click="handleGuestEntry" class="guest-button">
+                🚀 立即体验（临时账号）
+            </el-button>
 
             <div class="footer-note">
                 选择"立即体验"将使用临时会话，关闭浏览器后数据将清除
+            </div>
+            <el-divider>或者</el-divider>
+
+            <div class="form-container">
+                <!-- 登录/注册选项卡 -->
+                <el-tabs v-model="activeTab" class="tabs-container">
+                    <!-- 登录表单 -->
+                    <el-tab-pane label="登录" name="login">
+                        <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef"
+                            @submit.prevent="handleLogin">
+                            <el-form-item prop="user_id" class="form-item-margin">
+                                <el-input v-model="loginForm.user_id" placeholder="用户ID" clearable size="large"
+                                    :prefix-icon="Lock" class="responsive-input" :style="{
+                                        height: 'clamp(40px, 5vh, 60px)',
+                                        fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
+                                    }" />
+                            </el-form-item>
+                            <el-form-item prop="password" class="form-item-margin">
+                                <el-input v-model="loginForm.password" placeholder="密码" type="password" clearable
+                                    size="large" show-password :prefix-icon="Lock" class="responsive-input" :style="{
+                                        height: 'clamp(40px, 5vh, 60px)',
+                                        fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
+                                    }" />
+                            </el-form-item>
+                            <el-button type="primary" native-type="submit" :loading="isLoginSubmitting" size="large"
+                                class="full-width-button">
+                                {{ isLoginSubmitting ? '登录中...' : '🔑 登录' }}
+                            </el-button>
+                        </el-form>
+                    </el-tab-pane>
+
+                    <!-- 注册表单 -->
+                    <el-tab-pane label="注册" name="register">
+                        <el-form :model="registerForm" :rules="registerRules" ref="registerFormRef"
+                            @submit.prevent="handleRegister">
+                            <el-form-item prop="nickname" class="form-item-margin">
+                                <el-input v-model="registerForm.nickname" placeholder="设置昵称（2-24位）" clearable
+                                    size="large" :prefix-icon="Lock" class="responsive-input" :style="{
+                                        height: 'clamp(40px, 5vh, 60px)',
+                                        fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
+                                    }" />
+                            </el-form-item>
+                            <el-form-item prop="user_id" class="form-item-margin">
+                                <el-input v-model="registerForm.user_id" placeholder="设置用户ID（6-24位）" clearable
+                                    size="large" :prefix-icon="Lock" class="responsive-input" :style="{
+                                        height: 'clamp(40px, 5vh, 60px)',
+                                        fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
+                                    }" />
+                            </el-form-item>
+                            <el-form-item prop="password" class="form-item-margin">
+                                <el-input v-model="registerForm.password" placeholder="设置密码（6-24位）" type="password"
+                                    clearable size="large" show-password :prefix-icon="Lock" class="responsive-input"
+                                    :style="{
+                                        height: 'clamp(40px, 5vh, 60px)',
+                                        fontSize: 'clamp(1rem, 1.2vw, 1.25rem)'
+                                    }" />
+                            </el-form-item>
+                            <el-button type="primary" native-type="submit" :loading="isRegisterSubmitting" size="large"
+                                class="full-width-button">
+                                {{ isRegisterSubmitting ? '注册中...' : '📝 注册新用户' }}
+                            </el-button>
+                        </el-form>
+                    </el-tab-pane>
+                </el-tabs>
+
             </div>
         </el-card>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { registerUser, createTemporaryUser } from '../utils/api';
+import { ref, reactive, onMounted } from 'vue';
+import { registerUser, createTemporaryUser, loginUser } from '../utils/api';
 import { Lock } from '@element-plus/icons-vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useNuxtApp } from '#app';
 
-const router = useRouter();
 const { $storage } = useNuxtApp();
-const registerForm = ref<FormInstance>();
-const isSubmitting = ref(false);
+const activeTab = ref('login');
+const loginFormRef = ref<FormInstance>();
+const registerFormRef = ref<FormInstance>();
+const isLoginSubmitting = ref(false);
+const isRegisterSubmitting = ref(false);
 
-const form = reactive({
+// 登录表单数据
+const loginForm = reactive({
+    user_id: '',
+    password: '',
+});
+
+// 注册表单数据
+const registerForm = reactive({
     user_id: '',
     password: '',
     nickname: '',
 });
 
-const rules = reactive<FormRules>({
+// 登录表单验证规则
+const loginRules = reactive<FormRules>({
+    user_id: [
+        { required: true, message: '用户ID不能为空', trigger: 'blur' },
+        { min: 6, max: 24, message: '长度需在6到24个字符之间', trigger: 'blur' }
+    ],
+    password: [
+        { required: true, message: '密码不能为空', trigger: 'blur' },
+        { min: 6, max: 24, message: '长度需在6到24个字符之间', trigger: 'blur' }
+    ],
+});
+
+// 注册表单验证规则
+const registerRules = reactive<FormRules>({
     user_id: [
         { required: true, message: '用户ID不能为空', trigger: 'blur' },
         { min: 6, max: 24, message: '长度需在6到24个字符之间', trigger: 'blur' }
@@ -86,10 +143,11 @@ const rules = reactive<FormRules>({
 
 onMounted(() => {
     if ($storage.getItem('session_token')) {
-        router.push('/home');
+        navigateTo('/home');
     }
 });
 
+// 处理访客登录
 const handleGuestEntry = async () => {
     try {
         const result = await createTemporaryUser({});
@@ -98,57 +156,107 @@ const handleGuestEntry = async () => {
             $storage.setItem('nickname', result.resp_data.nickname);
             $storage.setItem('session_token', result.resp_data.token);
             $storage.setItem('is_temporary', 'true');
-            router.push('/home');
+            navigateTo('/home');
         } else {
             ElMessage.error(result.msg || '进入失败');
         }
-    } catch (error) {
-        ElMessage.error('系统错误，请重试');
+    } catch (error: any) {
+        ElMessage.error(error.msg || '系统错误，请重试');
     }
 };
 
-const handleRegister = async () => {
+// 处理登录
+const handleLogin = async () => {
     try {
-        await registerForm.value?.validate();
+        await loginFormRef.value?.validate();
     } catch (error) {
-        ElMessage.error("请正确填写注册信息");
+        ElMessage.error("请正确填写登录信息");
         return;
     }
 
     try {
-        isSubmitting.value = true;
-
-        const result = await registerUser({
-            user_id: form.user_id,
-            password: form.password,
-            nickname: form.nickname
+        isLoginSubmitting.value = true;
+        const result = await loginUser({
+            user_id: loginForm.user_id,
+            password: loginForm.password
         });
 
         if (result.code === 0) {
             $storage.setItem('user_id', result.resp_data.user_id);
             $storage.setItem('nickname', result.resp_data.nickname);
             $storage.setItem('session_token', result.resp_data.token);
-            router.push('/home');
+            $storage.setItem('is_temporary', 'false');
+            navigateTo('/home');
+        } else {
+            ElMessage.error(result.msg || '登录失败');
+        }
+    } catch (error: any) {
+        ElMessage.error(error.msg || '登录失败');
+    } finally {
+        isLoginSubmitting.value = false;
+    }
+};
+
+// 处理注册
+const handleRegister = async () => {
+    try {
+        await registerFormRef.value?.validate();
+    } catch (error) {
+        ElMessage.error("请正确填写注册信息");
+        return;
+    }
+
+    try {
+        isRegisterSubmitting.value = true;
+        const result = await registerUser({
+            user_id: registerForm.user_id,
+            password: registerForm.password,
+            nickname: registerForm.nickname
+        });
+
+        if (result.code === 0) {
+            $storage.setItem('user_id', result.resp_data.user_id);
+            $storage.setItem('nickname', result.resp_data.nickname);
+            $storage.setItem('session_token', result.resp_data.token);
+            $storage.setItem('is_temporary', 'false');
+            navigateTo('/home');
         } else {
             ElMessage.error(result.msg || '注册失败');
         }
-    } catch (error) {
-        ElMessage.error(`注册失败: 网络问题`);
+    } catch (error: any) {
+        ElMessage.error(error.msg || '注册失败');
     } finally {
-        isSubmitting.value = false;
+        isRegisterSubmitting.value = false;
     }
 };
 </script>
 
 <style scoped>
+/* 新增样式 */
+.tabs-container {
+    width: 100%;
+}
+
+/* 确保选项卡内容高度一致，避免切换时页面抖动 */
+:deep(.el-tabs__content) {
+    min-height: 260px;
+}
+
+.guest-button {
+    width: 100%;
+    font-size: clamp(0.875rem, 1.5vw, 1.25rem);
+    margin-top: 0.5rem;
+}
+
+/* 保持原有样式不变 */
 .index-container {
     min-height: 100vh;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
     background: linear-gradient(to bottom right, #ebf5ff, #f5f0ff);
+    overflow: hidden;
 }
 
 .responsive-card {
@@ -157,10 +265,11 @@ const handleRegister = async () => {
     min-height: 40vh;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-radius: 1rem;
-    margin: 0.5rem;
+    margin: 0;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.9);
+    overflow: hidden;
 }
 
 .header-content {
@@ -204,7 +313,7 @@ const handleRegister = async () => {
 }
 
 .footer-note {
-    margin-top: 1.5rem;
+    margin-top: 0.5rem;
     text-align: center;
     font-size: 0.875rem;
     color: #6b7280;

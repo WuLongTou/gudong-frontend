@@ -4,8 +4,12 @@
         <div class="user-info">
             <el-avatar :size="50" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
             <div class="user-details">
-                <h3 class="user-name">用户名</h3>
-                <p class="user-email">user@example.com</p>
+                <NicknameEditor
+                    :nickname="nickname"
+                    @update:nickname="updateNickname"
+                    class="nickname-editor-wrapper"
+                />
+                <p class="user-email">{{ userId }}</p>
             </div>
             <el-button type="primary" circle @click="onUserSetting">
                 <el-icon>
@@ -34,6 +38,30 @@
 <script setup lang="ts">
 import type { MapLocation } from '~/types'
 import { Setting } from '@element-plus/icons-vue'
+import NicknameEditor from '~/components/user/NicknameEditor.vue'
+import { ref, onMounted } from 'vue'
+import { useNuxtApp } from '#app'
+import type { StorageAdapter } from '~/plugins/storage'
+
+// 安全获取storage
+function getStorage(): StorageAdapter {
+    let storage
+    try {
+        const nuxtApp = useNuxtApp()
+        storage = nuxtApp.$storage as StorageAdapter
+    } catch (e) {
+        console.error('获取$storage失败:', e)
+        // 创建一个基于localStorage的后备实现
+        storage = {
+            getItem: (key: string) => localStorage.getItem(key),
+            setItem: (key: string, value: string) => localStorage.setItem(key, value),
+            removeItem: (key: string) => localStorage.removeItem(key)
+        }
+    }
+    return storage
+}
+
+const storage = getStorage()
 
 const props = defineProps<{
     location: MapLocation
@@ -48,6 +76,35 @@ const form = ref<MapLocation>({
     longitude: props.location.longitude,
     latitude: props.location.latitude,
 })
+
+// 用户信息
+const nickname = ref('')
+const userId = ref('')
+
+onMounted(() => {
+    // 从存储中获取用户信息
+    try {
+        nickname.value = storage.getItem('nickname') || '未知用户'
+        userId.value = storage.getItem('user_id') || '游客'
+    } catch (e) {
+        console.error('从storage获取用户信息失败:', e)
+        // 尝试从localStorage获取
+        nickname.value = localStorage.getItem('nickname') || '未知用户'
+        userId.value = localStorage.getItem('user_id') || '游客'
+    }
+})
+
+function updateNickname(newNickname: string) {
+    console.log('UserBundle: 更新昵称', newNickname)
+    nickname.value = newNickname
+    // 更新本地存储
+    try {
+        storage.setItem('nickname', newNickname)
+    } catch (e) {
+        console.error('更新storage中的昵称失败:', e)
+        localStorage.setItem('nickname', newNickname)
+    }
+}
 
 function onBlurLongitude(e: Event) {
     emits('update:location', {
@@ -85,13 +142,6 @@ function onUserSetting() {
 .user-details {
     flex: 1;
     min-width: 0; /* 防止文本溢出 */
-}
-
-.user-name {
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .user-email {
@@ -132,5 +182,11 @@ function onUserSetting() {
     .user-details {
         width: calc(100% - 60px);
     }
+}
+
+.nickname-editor-wrapper {
+    display: block;
+    margin-bottom: 4px;
+    cursor: pointer;
 }
 </style>

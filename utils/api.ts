@@ -23,61 +23,78 @@ import type {
     CreateRegisteredUserRequest,
     CreateUserResponse,
     CreateTemporaryUserRequest,
+    User,
 } from '@/types/user_type';
-import { useNuxtApp } from '#app';
+import { get, post, put } from './request';
+import { error_codes } from './error_codes';
 
 // 统一响应类型
 type APIResponse<T> = Promise<Result<T>>;
 
-// 核心请求封装
-const api_wrapper = async <T>(method: 'get' | 'post' | 'put', url: string, data?: any): Promise<Result<T>> => {
-    const { $axios } = useNuxtApp();
+// 处理API响应，如果是公共接口则不弹出认证错误提示
+const handleApiResponse = async <T>(promise: Promise<Result<T>>, isPublic: boolean = false): Promise<Result<T>> => {
     try {
-        return await $axios.request({ method, url, [method === 'get' ? 'params' : 'data']: data });
-    } catch (err) {
-        return err as Result<T>;
+        const result = await promise;
+        
+        // 如果是公共接口，或者不是认证错误，直接返回结果
+        if (isPublic || result.code !== error_codes.AUTH_FAILED) {
+            return result;
+        }
+        
+        // 对于认证错误，交由request.ts处理后返回结果
+        return result;
+    } catch (error: any) {
+        // 错误已在request.ts中处理
+        throw error;
     }
 };
 
 // 用户相关API
 export const registerUser = (data: CreateRegisteredUserRequest): APIResponse<CreateUserResponse> =>
-    api_wrapper('post', '/users/register', data);
+    handleApiResponse(post('/users/register', data), true);
 
-export const createTemporaryUser = (data: CreateTemporaryUserRequest): APIResponse<CreateUserResponse> =>
-    api_wrapper('post', '/users/temporary');
+export const loginUser = (data: { user_id: string, password: string }): APIResponse<CreateUserResponse> =>
+    handleApiResponse(post('/users/login', data), true);
 
+export const createTemporaryUser = (): APIResponse<CreateUserResponse> =>
+    handleApiResponse(post('/users/temporary'), true);
+
+export const refreshToken = (): APIResponse<{ token: string }> =>
+    handleApiResponse(post('/users/refresh-token'), true);
+
+export const updateNickname = (data: { nickname: string }): APIResponse<User> =>
+    handleApiResponse(put('/users/update-nickname', data));
+
+export const updatePassword = (data: { password: string }): APIResponse<User> =>
+    handleApiResponse(put('/users/update-password', data));
 
 // 群组相关API
 export const createGroup = (data: NewGroupRequest): APIResponse<GroupInfo> =>
-    api_wrapper('post', '/groups/create', data);
+    handleApiResponse(post('/groups/create', data));
 
 export const queryGroupsByName = (params: QueryGroupInfoByNameRequest): APIResponse<GroupInfo[]> =>
-    api_wrapper('get', '/groups/by-name', params);
+    handleApiResponse(get('/groups/by-name', params));
 
 export const queryGroupById = (params: QueryGroupInfoByIdRequest): APIResponse<GroupInfo> =>
-    api_wrapper('get', '/groups/by-id', params);
+    handleApiResponse(get('/groups/by-id', params));
 
 export const queryGroupsByLocation = (params: QueryGroupInfoByLocationRequest): APIResponse<GroupInfo[]> =>
-    api_wrapper('get', '/groups/by-location', {
-        latitude: params.latitude,
-        longitude: params.longitude,
-        radius: params.radius
-    });
+    handleApiResponse(get('/groups/by-location', params));
 
 export const joinGroup = (data: JoinGroupRequest): APIResponse<JoinGroupResponse> =>
-    api_wrapper('post', '/groups/join', data);
+    handleApiResponse(post('/groups/join', data));
 
 export const leaveGroup = (data: LeaveGroupRequest): APIResponse<LeaveGroupResponse> =>
-    api_wrapper('post', '/groups/leave', data);
+    handleApiResponse(post('/groups/leave', data));
 
 // 消息相关API
 export const sendMessageToGroup = (data: SendMessageToGroupRequest): APIResponse<SendMessageToGroupResponse> =>
-    api_wrapper('post', '/messages/create', data);
+    handleApiResponse(post('/messages/create', data));
 
 export const queryMessageFromGroup = (data: QueryMessageFromGroupRequest): APIResponse<GroupMessage[]> =>
-    api_wrapper('post', '/messages/get', data);
+    handleApiResponse(post('/messages/get', data));
 
 // 保活接口
 export const keepAliveInGroup = (data: KeepAliveInGroupRequest): APIResponse<KeepAliveInGroupResponse> =>
-    api_wrapper('post', '/groups/keep_alive', data);
+    handleApiResponse(post('/groups/keep-alive', data));
 
