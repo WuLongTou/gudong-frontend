@@ -150,7 +150,7 @@ onMounted(() => {
 // 处理访客登录
 const handleGuestEntry = async () => {
     try {
-        const result = await createTemporaryUser({});
+        const result = await createTemporaryUser();
         if (result.code === 0) {
             $storage.setItem('user_id', result.resp_data.user_id);
             $storage.setItem('nickname', result.resp_data.nickname);
@@ -251,12 +251,17 @@ const handleRegister = async () => {
 /* 保持原有样式不变 */
 .index-container {
     min-height: 100vh;
+    /* 使用CSS变量确保在移动端上正确显示 */
+    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(to bottom right, #ebf5ff, #f5f0ff);
     overflow: hidden;
+    /* 增加安全区域支持 */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .responsive-card {
@@ -339,8 +344,11 @@ const handleRegister = async () => {
     .responsive-card {
         width: 95vw;
         max-height: 90vh;
+        max-height: calc(var(--vh, 1vh) * 90);
         overflow-y: auto;
         padding: 1.5rem;
+        /* 增加底部边距，避免内容被虚拟键盘遮挡 */
+        margin-bottom: env(safe-area-inset-bottom);
     }
 
     .main-title {
@@ -353,6 +361,38 @@ const handleRegister = async () => {
 
     .form-item-margin {
         margin-bottom: 1rem;
+    }
+    
+    /* 针对iOS虚拟键盘的优化 */
+    .el-input__inner {
+        font-size: 16px !important; /* 防止iOS自动缩放 */
+    }
+}
+
+/* 针对小屏幕设备上的虚拟键盘弹出情况 */
+@media (max-height: 500px) {
+    .index-container {
+        align-items: flex-start; /* 在键盘弹出时将内容对齐到顶部 */
+        padding-top: 1rem;
+    }
+    
+    .responsive-card {
+        margin-top: 0;
+        max-height: none;
+    }
+    
+    .main-title {
+        font-size: clamp(1.25rem, 5vw, 2rem);
+    }
+    
+    .subtitle {
+        font-size: clamp(0.675rem, 1vw, 1rem);
+        margin-bottom: 0.5rem;
+    }
+    
+    /* 减少不必要的动画，提高性能 */
+    .animate-move-around {
+        animation: none;
     }
 }
 

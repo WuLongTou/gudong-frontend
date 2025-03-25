@@ -59,6 +59,11 @@ function toggleSidebar() {
     right: 0;
     bottom: 0;
     overflow: hidden;
+    /* 使用CSS变量确保在移动端上正确显示 */
+    height: 100vh; /* 回退方案 */
+    height: calc(var(--vh, 1vh) * 100);
+    /* 增加安全区域支持 */
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .map-container {
@@ -128,6 +133,8 @@ function toggleSidebar() {
         min-width: 0;
         height: 40%;
         border-top: 1px solid #e0e0e0;
+        /* 添加安全区域支持 */
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .sidebar-container.sidebar-hidden {
@@ -154,6 +161,34 @@ function toggleSidebar() {
 
     .sidebar-toggle.sidebar-hidden .toggle-icon {
         transform: rotate(90deg);
+    }
+}
+
+/* 针对小屏幕移动设备的优化 */
+@media (max-width: 768px) {
+    .sidebar-container {
+        height: 50%; /* 在小屏幕上增加侧边栏高度比例 */
+    }
+
+    .sidebar-toggle {
+        bottom: 50%;
+        width: 50px;
+        height: 28px;
+    }
+    
+    .sidebar-toggle.sidebar-hidden {
+        bottom: env(safe-area-inset-bottom); /* 考虑底部安全区域 */
+    }
+}
+
+/* 针对超小屏幕设备的优化 */
+@media (max-width: 480px) {
+    .sidebar-container {
+        height: 60%; /* 在超小屏幕上进一步增加侧边栏高度比例 */
+    }
+
+    .sidebar-toggle {
+        bottom: 60%;
     }
 }
 
