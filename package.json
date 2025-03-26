@@ -12,10 +12,12 @@
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@element-plus/icons-vue": "^2.3.1",
+    "@pinia/nuxt": "^0.10.1",
     "dayjs": "^1.11.13",
     "element-plus": "^2.9.6",
     "lodash-es": "^4.17.21",
     "nuxt": "3.15.4",
+    "pinia": "^3.0.1",
     "typescript": "^5.8.2",
     "vue": "latest",
     "vue-router": "latest"
@@ -26,7 +28,9 @@
     "@nuxt/devtools": "^2.2.1",
     "@nuxtjs/tailwindcss": "^6.13.2",
     "@types/lodash-es": "^4.17.12",
-    "nuxt-lodash": "^2.5.3"
+    "nuxt-lodash": "^2.5.3",
+    "pinia-plugin-persistedstate": "^4.2.0",
+    "sass": "^1.86.0"
   },
   "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b"
 }

@@ -1,13 +1,9 @@
-import type { Result } from '@/types/common'
+import type { Result } from '~/types/common'
 import { error_codes } from './error_codes'
-import { isPublicApi } from './jwt'
+import { isPublicApi } from './auth/token'
+import { SESSION_TOKEN_KEY } from './auth/token'
 import { ElMessage } from 'element-plus'
-
-// 获取存储
-const getStorage = () => {
-    const { $storage } = useNuxtApp()
-    return $storage
-}
+import { useUserStore } from '~/stores/user'
 
 // HTTP方法类型
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -23,9 +19,9 @@ export const request = async <T>(
     const baseURL = config.public.apiBaseUrl
     const fullUrl = `${baseURL}${url}`
 
-    // 获取token
-    const storage = getStorage()
-    const token = storage?.getItem('session_token')
+    // 获取token - 直接从 UserStore 获取
+    const userStore = useUserStore()
+    const token = userStore.sessionToken
 
     // 请求头
     const headers: HeadersInit = {
@@ -57,8 +53,9 @@ export const request = async <T>(
         if (response.code === error_codes.AUTH_FAILED) {
             // 如果是认证失败错误，处理token过期情况
             const nuxtApp = useNuxtApp()
-            if (nuxtApp.$handleAuthError && !isPublicApi(url)) {
-                nuxtApp.$handleAuthError(response.msg || '登录已过期，请重新登录')
+            const handleAuthError = nuxtApp.$handleAuthError as any
+            if (handleAuthError && !isPublicApi(url)) {
+                handleAuthError(response.msg || '登录已过期，请重新登录')
             }
         } else if (response.code === error_codes.PERMISSION_DENIED) {
             // 如果是权限错误
@@ -74,8 +71,9 @@ export const request = async <T>(
         if (error.response?.status === 401 || 
             error.response?.data?.code === error_codes.AUTH_FAILED) {
             const nuxtApp = useNuxtApp()
-            if (nuxtApp.$handleAuthError && !isPublicApi(url)) {
-                nuxtApp.$handleAuthError(error.response?.data?.msg || '登录已过期，请重新登录')
+            const handleAuthError = nuxtApp.$handleAuthError as any
+            if (handleAuthError && !isPublicApi(url)) {
+                handleAuthError(error.response?.data?.msg || '登录已过期，请重新登录')
             }
         }
         

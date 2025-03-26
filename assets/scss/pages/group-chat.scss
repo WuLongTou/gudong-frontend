@@ -1,0 +1,484 @@
+@use '../variables' as v;
+@use '../mixins' as m;
+
+.chat-container {
+    /* 使用CSS变量而不是100vh，避免在移动端出现问题 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* 回退方案 */
+    height: calc(var(--vh, 1vh) * 100); /* 使用CSS变量 */
+    overflow: hidden;
+    /* 增加安全区域的支持 */
+    padding-bottom: env(safe-area-inset-bottom);
+    background-color: v.$background-color-light;
+}
+
+.chat-header {
+    border-bottom: 1px solid v.$border-color-light;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: white;
+    min-height: 4rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-radius: 0 0 1rem 1rem;
+    margin: 0 0.5rem 0.5rem 0.5rem;
+}
+
+.group-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    word-break: break-word;
+    color: v.$text-color-primary;
+}
+
+.location-text {
+    color: v.$text-color-secondary;
+    font-size: 0.875rem;
+    word-break: break-word;
+}
+
+.message-area {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background-color: v.$background-color-light;
+    /* 确保内容可滚动，避免iOS弹性滚动问题 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.message-list-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.message-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.message-item {
+    display: flex;
+    position: relative;
+    animation: message-fade-in 0.3s ease-out;
+    margin-bottom: 0.5rem;
+    align-items: flex-start;
+
+    &.message-grouped {
+        margin-top: -0.25rem;
+    }
+
+    &.message-self {
+        justify-content: flex-end;
+    }
+
+    &.message-other {
+        justify-content: flex-start;
+    }
+
+    @keyframes message-fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+.avatar-container {
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 4px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: v.$primary-color;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+
+    &:hover {
+        transform: scale(1.05);
+    }
+}
+
+.avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    margin: 0 8px;
+    flex-shrink: 0;
+    padding-top: 4px;
+}
+
+.message-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: calc(100% - 88px);
+    padding-top: 0;
+}
+
+.message-bubble {
+    max-width: 100%;
+    border-radius: 1.2rem;
+    padding: 0.75rem 1rem;
+    word-break: break-word;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    position: relative;
+    margin: 2px 0;
+
+    &.message-bubble-grouped {
+        margin-top: 2px;
+    }
+
+    &.message-bubble-self {
+        background-color: v.$primary-color;
+        color: white;
+        border-bottom-right-radius: 0.25rem;
+        align-self: flex-end;
+
+        &:hover {
+            box-shadow: 0 2px 5px rgba(9, 132, 227, 0.2);
+        }
+    }
+
+    &.message-bubble-other {
+        background-color: #f1f5fe;
+        color: v.$text-color-primary;
+        border-bottom-left-radius: 0.25rem;
+        align-self: flex-start;
+        border-left: 3px solid rgba(64, 158, 255, 0.2);
+
+        &:hover {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    }
+}
+
+.message-new .message-bubble {
+    animation: highlight 2s ease-out;
+
+    @keyframes highlight {
+        0% { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+        100% { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+    }
+}
+
+.message-sender {
+    color: v.$text-color-tertiary;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    padding-left: 0.25rem;
+    transition: color 0.2s ease;
+}
+
+.message-text {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.message-time-indicator {
+    display: flex;
+    margin-top: 2px;
+    justify-content: flex-end;
+    padding: 0 4px;
+
+    .message-self & {
+        justify-content: flex-end;
+    }
+
+    .message-other & {
+        justify-content: flex-start;
+    }
+}
+
+.message-time {
+    font-size: 0.7rem;
+    color: v.$text-color-light;
+    margin: 0 4px;
+}
+
+.time-divider {
+    width: 100%;
+    text-align: center;
+    margin: 1rem 0;
+    position: relative;
+    height: 20px;
+
+    &:before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background-color: rgba(0, 0, 0, 0.05);
+        z-index: 1;
+    }
+
+    span {
+        display: inline-block;
+        background-color: #f2f3f5;
+        color: #8a9aa9;
+        padding: 0.2rem 1rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease;
+
+        &:hover {
+            transform: scale(1.05);
+        }
+    }
+}
+
+.scroll-button {
+    position: fixed;
+    right: 1.5%;
+    bottom: 80px;
+    z-index: 10;
+    transform: translateY(-50%);
+    transition: opacity 0.2s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.scroll-button-inner {
+    opacity: 0.9;
+    transition: all 0.3s;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(1);
+    border-radius: 50%;
+
+    &:hover {
+        opacity: 1;
+        transform: scale(1.05);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+}
+
+.input-area {
+    border-top: 1px solid v.$border-color-extra-light;
+    padding: 1rem;
+    background-color: white;
+    min-height: 4rem;
+    max-height: 8rem;
+    /* 添加安全底部距离，避免被底部菜单遮挡 */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+    /* 确保输入区域不会被浏览器底部导航栏遮挡 */
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.03);
+    border-radius: 1rem 1rem 0 0;
+    margin: 0.5rem 0.5rem 0 0.5rem;
+}
+
+.new-message-divider {
+    width: 100%;
+    text-align: center;
+    margin: 0.75rem 0;
+    position: relative;
+    height: 20px;
+
+    &:before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background-color: rgba(239, 68, 68, 0.2);
+        z-index: 1;
+    }
+
+    span {
+        display: inline-block;
+        background-color: #ef4444;
+        color: white;
+        padding: 0.15rem 1rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 1px 3px rgba(239, 68, 68, 0.3);
+    }
+}
+
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    color: v.$text-color-secondary;
+    gap: 0.5rem;
+
+    &.loading-indicator-small {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        opacity: 0.8;
+        animation: fade-in 0.3s ease-in-out;
+    }
+}
+
+.no-more-messages {
+    text-align: center;
+    color: v.$text-color-light;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.8;
+    animation: fade-in 0.5s ease-in-out;
+    user-select: none;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.8;
+    }
+}
+
+/* 添加触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+    .message-bubble {
+        /* 增加触摸目标大小 */
+        padding: 0.85rem 1rem;
+    }
+    
+    .scroll-button-inner {
+        width: 46px;
+        height: 46px;
+    }
+    
+    /* 优化滑动手感 */
+    .message-area {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+        overscroll-behavior-y: contain;
+    }
+}
+
+/* 针对手机竖屏模式的优化 */
+@media (max-aspect-ratio: 2/3) {
+    .chat-header {
+        padding: 0.75rem;
+        min-height: 3.5rem;
+    }
+
+    .group-title {
+        font-size: 1.125rem;
+    }
+
+    .message-area {
+        padding: 0.75rem;
+    }
+
+    .message-bubble {
+        max-width: 90%;
+        padding: 0.6rem 0.8rem;
+        border-radius: 1rem;
+    }
+
+    .avatar-container, .avatar, .avatar-placeholder {
+        width: 32px;
+        height: 32px;
+    }
+
+    .avatar {
+        font-size: 14px;
+    }
+
+    .message-content-wrapper {
+        max-width: calc(100% - 80px);
+    }
+
+    .input-area {
+        padding: 0.75rem;
+        min-height: 3.5rem;
+        /* 更新安全距离 */
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+    }
+
+    .scroll-button {
+        right: 4%;
+        bottom: 76px;
+    }
+    
+    .scroll-button-inner {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+/* 针对小屏幕设备的优化 */
+@media (max-height: 500px) {
+    .chat-header {
+        min-height: 3rem;
+        padding: 0.5rem;
+    }
+
+    .input-area {
+        min-height: 3rem;
+        padding: 0.5rem;
+        /* 更新安全距离 */
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
+    }
+
+    .message-list {
+        gap: 0.5rem;
+    }
+}
+
+/* 针对虚拟键盘弹出的情况 */
+@media (max-height: 400px) {
+    .chat-header {
+        min-height: 2.5rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .group-title {
+        font-size: 1rem;
+    }
+    
+    .location-text {
+        font-size: 0.75rem;
+    }
+    
+    .scroll-button {
+        bottom: 3.5rem;
+    }
+} 

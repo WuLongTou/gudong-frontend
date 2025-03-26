@@ -1,15 +1,15 @@
 <template>
     <!-- 用户信息 -->
-    <el-card class="user-card">
-        <div class="user-info">
+    <el-card class="user-bundle-card">
+        <div class="user-bundle-info">
             <el-avatar :size="50" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-            <div class="user-details">
+            <div class="user-bundle-details">
                 <NicknameEditor
                     :nickname="nickname"
                     @update:nickname="updateNickname"
                     class="nickname-editor-wrapper"
                 />
-                <p class="user-email">{{ userId }}</p>
+                <p class="user-bundle-email">{{ userId }}</p>
             </div>
             <el-button type="primary" circle @click="onUserSetting">
                 <el-icon>
@@ -19,7 +19,7 @@
         </div>
     </el-card>
     <!-- 位置信息 -->
-    <el-card class="location-card">
+    <el-card class="location-bundle-card">
         <el-collapse>
             <el-collapse-item title="位置信息">
                 <el-form-item label="经度">
@@ -36,32 +36,14 @@
     </el-card>
 </template>
 <script setup lang="ts">
-import type { MapLocation } from '~/types'
+import type { MapLocation } from '~/types/map_type'
 import { Setting } from '@element-plus/icons-vue'
 import NicknameEditor from '~/components/user/NicknameEditor.vue'
 import { ref, onMounted } from 'vue'
-import { useNuxtApp } from '#app'
-import type { StorageAdapter } from '~/plugins/storage'
+import { useUserStore } from '~/stores/user'
 
-// 安全获取storage
-function getStorage(): StorageAdapter {
-    let storage
-    try {
-        const nuxtApp = useNuxtApp()
-        storage = nuxtApp.$storage as StorageAdapter
-    } catch (e) {
-        console.error('获取$storage失败:', e)
-        // 创建一个基于localStorage的后备实现
-        storage = {
-            getItem: (key: string) => localStorage.getItem(key),
-            setItem: (key: string, value: string) => localStorage.setItem(key, value),
-            removeItem: (key: string) => localStorage.removeItem(key)
-        }
-    }
-    return storage
-}
-
-const storage = getStorage()
+// 使用pinia store
+const userStore = useUserStore()
 
 const props = defineProps<{
     location: MapLocation
@@ -82,28 +64,16 @@ const nickname = ref('')
 const userId = ref('')
 
 onMounted(() => {
-    // 从存储中获取用户信息
-    try {
-        nickname.value = storage.getItem('nickname') || '未知用户'
-        userId.value = storage.getItem('user_id') || '游客'
-    } catch (e) {
-        console.error('从storage获取用户信息失败:', e)
-        // 尝试从localStorage获取
-        nickname.value = localStorage.getItem('nickname') || '未知用户'
-        userId.value = localStorage.getItem('user_id') || '游客'
-    }
+    // 从store中获取用户信息
+    nickname.value = userStore.nickname || '未知用户'
+    userId.value = userStore.userId || '游客'
 })
 
 function updateNickname(newNickname: string) {
     console.log('UserBundle: 更新昵称', newNickname)
     nickname.value = newNickname
-    // 更新本地存储
-    try {
-        storage.setItem('nickname', newNickname)
-    } catch (e) {
-        console.error('更新storage中的昵称失败:', e)
-        localStorage.setItem('nickname', newNickname)
-    }
+    // 通过store更新昵称
+    userStore.$patch({ nickname: newNickname })
 }
 
 function onBlurLongitude(e: Event) {
@@ -129,22 +99,22 @@ function onUserSetting() {
 </script>
 
 <style scoped>
-.user-card {
+.user-bundle-card {
     margin-bottom: 1rem;
 }
 
-.user-info {
+.user-bundle-info {
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
-.user-details {
+.user-bundle-details {
     flex: 1;
     min-width: 0; /* 防止文本溢出 */
 }
 
-.user-email {
+.user-bundle-email {
     color: #6b7280;
     font-size: 0.875rem;
     white-space: nowrap;
@@ -152,13 +122,13 @@ function onUserSetting() {
     text-overflow: ellipsis;
 }
 
-.location-card {
+.location-bundle-card {
     margin-bottom: 1rem;
 }
 
 /* 针对手机竖屏模式的优化 */
 @media (max-aspect-ratio: 2/3) {
-    .user-info {
+    .user-bundle-info {
         gap: 0.5rem;
     }
     
@@ -175,11 +145,11 @@ function onUserSetting() {
 
 /* 针对极小屏幕的优化 */
 @media (max-width: 320px) {
-    .user-info {
+    .user-bundle-info {
         flex-wrap: wrap;
     }
     
-    .user-details {
+    .user-bundle-details {
         width: calc(100% - 60px);
     }
 }

@@ -1,0 +1,13 @@
+// 页面样式索引文件
+// 用于统一导入所有页面样式
+
+// 使用@forward导入所有页面样式模块
+@forward 'pages/index';
+@forward 'pages/home';
+@forward 'pages/group-chat';
+@forward 'pages/login';
+
+// 未来添加新页面样式时，在此添加相应的@forward语句
+// @forward 'pages/about';
+// @forward 'pages/profile';
+// @forward 'pages/settings'; 

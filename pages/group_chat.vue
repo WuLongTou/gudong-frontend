@@ -6,7 +6,7 @@
                 <h1 class="group-title">{{ groupInfo.name }}</h1>
                 <p class="location-text">位置：{{ groupInfo.location_name }}</p>
             </div>
-            <el-button type="primary" @click="onLeaveGroup">返回主页</el-button>
+            <el-button type="primary" @click="onLeaveGroup" round>返回主页</el-button>
         </div>
 
         <!-- 消息区域 -->
@@ -32,6 +32,11 @@
                 <div class="message-list">
                     <!-- 消息列表 -->
                     <template v-for="(msg, index) in messages" :key="msg.message_id">
+                        <!-- 时间分隔条 -->
+                        <div v-if="shouldShowTimeDivider(msg, index)" class="time-divider">
+                            <span>{{ formatters.formatTimeDivider(msg.created_at) }}</span>
+                        </div>
+                        
                         <!-- 新消息分隔线 -->
                         <div v-if="index === firstNewMessageIndex" class="new-message-divider">
                             <span>新消息</span>
@@ -41,26 +46,46 @@
                         <div :class="[
                             'message-item',
                             isCurrentUser(msg.user_id) ? 'message-self' : 'message-other',
-                            msg.isNew ? 'message-new' : ''
+                            msg.isNew ? 'message-new' : '',
+                            shouldGroupWithPrevious(msg, index) ? 'message-grouped' : ''
                         ]">
-                            <div :class="[
-                                'message-bubble',
-                                isCurrentUser(msg.user_id) ? 'message-bubble-self' : 'message-bubble-other'
-                            ]">
-                                <p class="message-content">
-                                    <span class="message-sender-inline">{{ msg.nickname }}：</span>
-                                    {{ msg.content }}
-                                </p>
-                                <div class="message-meta">
-                                    <span class="message-time">{{ formatTime(msg.created_at) }}</span>
+                            <!-- 头像 -->
+                            <div v-if="!isCurrentUser(msg.user_id) && !shouldGroupWithPrevious(msg, index)" class="avatar-container">
+                                <div class="avatar" :style="{ backgroundColor: getUserColor(msg.user_id) }">
+                                    {{ msg.nickname.charAt(0) }}
                                 </div>
                             </div>
+                            <div v-else-if="!isCurrentUser(msg.user_id)" class="avatar-placeholder"></div>
+                            
+                            <div class="message-content-wrapper">
+                                <!-- 发送者名称 (仅在群组中的第一条消息显示) -->
+                                <div v-if="!isCurrentUser(msg.user_id) && !shouldGroupWithPrevious(msg, index)" 
+                                    class="message-sender" 
+                                    :style="{ color: getUserColor(msg.user_id) }">
+                                    {{ msg.nickname }}
+                                </div>
+                                
+                                <div :class="[
+                                    'message-bubble',
+                                    isCurrentUser(msg.user_id) ? 'message-bubble-self' : 'message-bubble-other',
+                                    shouldGroupWithPrevious(msg, index) ? 'message-bubble-grouped' : ''
+                                ]">
+                                    <p class="message-text">{{ msg.content }}</p>
+                                </div>
+                                
+                                <div class="message-time-indicator">
+                                    <span class="message-time">{{ formatters.formatMessageTime(msg.created_at) }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 右侧头像占位 -->
+                            <div v-if="isCurrentUser(msg.user_id)" class="avatar-placeholder"></div>
                         </div>
                     </template>
                 </div>
                 
                 <!-- 空消息提示 -->
-                <div v-if="messages.length === 0 && !loading" class="empty-message">
+                <div v-if="messages.length === 0 && !loading" class="chat-empty-message">
                     <p>暂无消息，发送第一条消息吧</p>
                 </div>
             </div>
@@ -80,9 +105,9 @@
         <!-- 发送消息区域 -->
         <div class="input-area">
             <el-input v-model="newMessage" placeholder="输入消息..." @keyup.enter="sendMessage" :maxlength="200"
-                show-word-limit clearable @focus="handleFocus" @blur="handleBlur">
+                show-word-limit clearable @focus="handleFocus" @blur="handleBlur" round>
                 <template #append>
-                    <el-button @click="sendMessage" type="primary" :loading="sending">发送</el-button>
+                    <el-button @click="sendMessage" type="primary" :loading="sending" round>发送</el-button>
                 </template>
             </el-input>
         </div>
@@ -92,12 +117,14 @@
 <script setup lang="ts">
 import { ArrowDown, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { sendMessageToGroup, queryMessageFromGroup, leaveGroup, queryGroupById } from '@/utils/api'
-import type { GroupMessage } from '@/types'
-import dayjs from 'dayjs'
-import { useNuxtApp } from '#app'
+import { sendMessageToGroup, queryMessageFromGroup } from '~/utils/api/modules/message'
+import { leaveGroup, queryGroupById } from '~/utils/api/modules/group'
+import type { GroupMessage } from '~/types'
+import { useUserStore } from '~/stores/user'
+import { useFormatters } from '~/composables/useFormatters'
 
-const { $storage } = useNuxtApp()
+const userStore = useUserStore()
+const formatters = useFormatters()
 
 const route = useRoute()
 const groupId = ref("")
@@ -119,6 +146,14 @@ const hasMoreMessages = ref(true)
 const isScrollingUp = ref(false)
 const lastScrollTop = ref(0)
 const scrollPositionBeforeLoad = ref(0)
+const userColorMap = ref<Record<string, string>>({})
+
+// 预定义的头像颜色数组
+const avatarColors = [
+    '#3498db', '#9b59b6', '#e74c3c', '#1abc9c', 
+    '#f1c40f', '#e67e22', '#2ecc71', '#16a085',
+    '#27ae60', '#2980b9', '#8e44ad', '#f39c12'
+]
 
 // 获取群组信息
 const groupInfo = ref<{
@@ -128,6 +163,51 @@ const groupInfo = ref<{
     name: '加载中...',
     location_name: '加载中...'
 })
+
+// 获取用户的头像颜色
+const getUserColor = (userId: string): string => {
+    // 如果已经分配了颜色，直接返回
+    if (userColorMap.value[userId]) {
+        return userColorMap.value[userId]
+    }
+    
+    // 为用户分配新颜色
+    const colorIndex = Object.keys(userColorMap.value).length % avatarColors.length
+    const color = avatarColors[colorIndex]
+    userColorMap.value[userId] = color
+    
+    return color
+}
+
+// 检查是否需要显示时间分隔条
+const shouldShowTimeDivider = (currentMsg: GroupMessage, index: number): boolean => {
+    // 第一条消息总是显示时间分隔条
+    if (index === 0) return true
+    
+    // 获取前一条消息
+    const prevMsg = messages.value[index - 1]
+    
+    // 使用格式化工具检查时间间隔
+    return formatters.isTimeGapGreaterThan(currentMsg.created_at, prevMsg.created_at, 15)
+}
+
+// 检查消息是否应该与前一条消息分组显示
+const shouldGroupWithPrevious = (currentMsg: GroupMessage, index: number): boolean => {
+    // 第一条消息不能与前一条分组
+    if (index === 0) return false
+    
+    // 获取前一条消息
+    const prevMsg = messages.value[index - 1]
+    
+    // 如果发送者不同，不能分组
+    if (currentMsg.user_id !== prevMsg.user_id) return false
+    
+    // 如果中间有时间分隔条，不能分组
+    if (shouldShowTimeDivider(currentMsg, index)) return false
+    
+    // 使用formatters检查时间间隔
+    return formatters.isTimeGapGreaterThan(currentMsg.created_at, prevMsg.created_at, 2) === false
+}
 
 // 加载群组信息
 const loadGroupInfo = async () => {
@@ -155,10 +235,10 @@ const mergeNewMessages = (msg_received: GroupMessage[], prepend = false) => {
     }
 
     // 使用Set高效去重（简化旧的复杂逻辑）
-    const existingMessageIds = new Set(messages.value.map(m => m.message_id));
+    const existingMessageIds = new Set(messages.value.map((m) => m.message_id));
     const newMessages = msg_received.filter(
-        msg => !existingMessageIds.has(msg.message_id)
-    ).map(msg => ({
+        (msg) => !existingMessageIds.has(msg.message_id)
+    ).map((msg) => ({
         ...msg,
         isNew: !prepend
     }));
@@ -205,8 +285,8 @@ const mergeNewMessages = (msg_received: GroupMessage[], prepend = false) => {
         firstNewMessageIndex.value = -1;
     } else if (!prepend) {
         // 更新未读消息数
-        const myUserId = $storage.getItem('user_id');
-        unreadCount.value += newMessages.filter(msg => msg.user_id !== myUserId).length;
+        const myUserId = userStore.userId;
+        unreadCount.value += newMessages.filter((msg: GroupMessage) => msg.user_id !== myUserId).length;
         showScrollButton.value = true;
     }
     
@@ -234,7 +314,7 @@ const loadHistoryMessage = async () => {
             limit: -30  // 一次加载更多消息，减少后续加载频率
         });
         
-        const hasMessages = mergeNewMessages(data.resp_data);
+        const hasMessages = mergeNewMessages(data.resp_data as GroupMessage[]);
         
         if (hasMessages) {
             nextTick(() => {
@@ -266,7 +346,7 @@ const loadOlderMessages = async () => {
             limit: -20
         });
         
-        const hasOlderMessages = mergeNewMessages(data.resp_data, true);
+        const hasOlderMessages = mergeNewMessages(data.resp_data as GroupMessage[], true);
         
         if (!hasOlderMessages || data.resp_data.length < 5) {
             hasMoreMessages.value = false;
@@ -294,7 +374,7 @@ const loadLatestMessage = async () => {
             limit: 10
         });
         
-        mergeNewMessages(data.resp_data);
+        mergeNewMessages(data.resp_data as GroupMessage[]);
     } catch (error) {
         console.error('获取最新消息失败', error);
     }
@@ -407,8 +487,10 @@ const scrollToBottom = () => {
         unreadCount.value = 0
         
         // 标记所有消息为已读，使用高效的方式
-        if (messages.value.some(msg => msg.isNew)) {
-            messages.value.forEach(msg => msg.isNew = false)
+        if (messages.value.some((msg: GroupMessage & { isNew?: boolean }) => msg.isNew)) {
+            messages.value.forEach((msg: GroupMessage & { isNew?: boolean }) => {
+                if (msg.isNew) msg.isNew = false;
+            });
         }
         
         // 清除新消息分隔线
@@ -419,33 +501,15 @@ const scrollToBottom = () => {
     });
 }
 
-// 时间格式化
-const formatTime = (timestamp: string) => {
-    const timestampNumber = dayjs(timestamp).unix()
-    const now = dayjs();
-    const messageTime = dayjs.unix(timestampNumber);
-    const diffMinutes = now.diff(messageTime, 'minute');
-    const diffHours = now.diff(messageTime, 'hour');
-    const diffDays = now.diff(messageTime, 'day');
-    const diffMonths = now.diff(messageTime, 'month');
-    if (diffMinutes < 1) return '刚刚'
-    if (diffHours < 1) return `${diffMinutes}分钟前`
-    if (diffDays < 1) return messageTime.format('HH:mm')
-    if (diffMonths < 1) return messageTime.format('MM-DD')
-    return messageTime.format('YYYY-MM-DD')
-}
-
 // 判断当前用户（需要根据你的用户系统实现）
 const isCurrentUser = (senderId: string) => {
-    return senderId == $storage.getItem('user_id')
+    return senderId === userStore.userId
 }
 
 // 离开群组
 const onLeaveGroup = async () => {
     try {
-        await leaveGroup({
-            group_id: groupId.value
-        })
+        await leaveGroup(groupId.value)
         navigateTo('/home')
     } catch (error) {
         ElMessage.error('离开群组失败')
@@ -510,349 +574,6 @@ const handleResize = () => {
 }
 </script>
 
-<style scoped>
-.chat-container {
-    /* 使用CSS变量而不是100vh，避免在移动端出现问题 */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100vh; /* 回退方案 */
-    height: calc(var(--vh, 1vh) * 100); /* 使用CSS变量 */
-    overflow: hidden;
-    /* 增加安全区域的支持 */
-    padding-bottom: env(safe-area-inset-bottom);
-    background-color: #f5f7fa;
-}
-
-.chat-header {
-    border-bottom: 1px solid #e5e7eb;
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: white;
-    min-height: 4rem;
-}
-
-.group-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-    word-break: break-word;
-}
-
-.location-text {
-    color: #6b7280;
-    font-size: 0.875rem;
-    word-break: break-word;
-}
-
-.message-area {
-    flex: 1;
-    padding: 1rem;
-    background-color: #f5f7fa;
-    /* 确保内容可滚动，避免iOS弹性滚动问题 */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.message-list-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-}
-
-.message-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.message-item {
-    display: flex;
-    position: relative;
-    animation: message-fade-in 0.3s ease-out;
-}
-
-@keyframes message-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.message-self {
-    justify-content: flex-end;
-}
-
-.message-other {
-    justify-content: flex-start;
-}
-
-.message-bubble {
-    max-width: 70%;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    word-break: break-word;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.message-bubble-self {
-    background-color: #dbeafe;
-    border-bottom-right-radius: 0.1rem;
-}
-
-.message-bubble-other {
-    background-color: white;
-    border-bottom-left-radius: 0.1rem;
-}
-
-.message-new .message-bubble {
-    animation: highlight 2s ease-out;
-}
-
-@keyframes highlight {
-    0% { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
-    100% { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
-}
-
-.message-sender {
-    color: #1f2937;
-    font-size: 0.875rem;
-    margin-bottom: 0.25rem;
-}
-
-.message-sender-inline {
-    font-weight: 500;
-    color: #4b5563;
-    margin-right: 4px;
-}
-
-.message-content {
-    color: #1f2937;
-    line-height: 1.4;
-}
-
-.message-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
-}
-
-.message-time {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.scroll-button {
-    position: fixed;
-    right: 1%;
-    bottom: 80px;
-    z-index: 10;
-    transform: translateY(-50%);
-    transition: opacity 0.2s ease;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-}
-
-.scroll-button-inner {
-    opacity: 0.9;
-    transition: all 0.3s;
-    width: 42px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transform: scale(1);
-}
-
-.scroll-button-inner:hover {
-    opacity: 1;
-    transform: scale(1.05);
-}
-
-.input-area {
-    border-top: 1px solid #e5e7eb;
-    padding: 1rem;
-    background-color: white;
-    min-height: 4rem;
-    max-height: 8rem;
-    /* 添加安全底部距离，避免被底部菜单遮挡 */
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
-    /* 确保输入区域不会被浏览器底部导航栏遮挡 */
-    position: relative;
-    z-index: 10;
-}
-
-.new-message-divider {
-    width: 100%;
-    text-align: center;
-    margin: 0.5rem 0;
-    position: relative;
-    height: 20px;
-}
-
-.new-message-divider span {
-    display: inline-block;
-    background-color: #ef4444;
-    color: white;
-    padding: 0.15rem 1rem;
-    border-radius: 1rem;
-    font-size: 0.75rem;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.loading-indicator {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    color: #6b7280;
-    gap: 0.5rem;
-}
-
-.loading-indicator-small {
-    padding: 0.5rem;
-    font-size: 0.875rem;
-    opacity: 0.8;
-    animation: fade-in 0.3s ease-in-out;
-}
-
-.no-more-messages {
-    text-align: center;
-    color: #9ca3af;
-    font-size: 0.75rem;
-    padding: 0.5rem;
-    margin-bottom: 0.75rem;
-    opacity: 0.8;
-    animation: fade-in 0.5s ease-in-out;
-    user-select: none;
-}
-
-@keyframes fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 0.8;
-    }
-}
-
-.empty-message {
-    text-align: center;
-    padding: 2rem;
-    color: #6b7280;
-    margin: auto 0;
-    user-select: none;
-}
-
-/* 添加触摸优化 */
-@media (hover: none) and (pointer: coarse) {
-    .message-bubble {
-        /* 增加触摸目标大小 */
-        padding: 0.85rem;
-    }
-    
-    .scroll-button-inner {
-        width: 46px;
-        height: 46px;
-    }
-    
-    /* 优化滑动手感 */
-    .message-area {
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
-        overscroll-behavior-y: contain;
-    }
-}
-
-/* 针对手机竖屏模式的优化 */
-@media (max-aspect-ratio: 2/3) {
-    .chat-header {
-        padding: 0.75rem;
-        min-height: 3.5rem;
-    }
-
-    .group-title {
-        font-size: 1.125rem;
-    }
-
-    .message-area {
-        padding: 0.75rem;
-    }
-
-    .message-bubble {
-        max-width: 85%;
-        padding: 0.5rem;
-    }
-
-    .input-area {
-        padding: 0.75rem;
-        min-height: 3.5rem;
-        /* 更新安全距离 */
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
-    }
-
-    .scroll-button {
-        right: 4%;
-        bottom: 76px;
-    }
-    
-    .scroll-button-inner {
-        width: 38px;
-        height: 38px;
-    }
-}
-
-/* 针对小屏幕设备的优化 */
-@media (max-height: 500px) {
-    .chat-header {
-        min-height: 3rem;
-        padding: 0.5rem;
-    }
-
-    .input-area {
-        min-height: 3rem;
-        padding: 0.5rem;
-        /* 更新安全距离 */
-        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
-    }
-
-    .message-list {
-        gap: 0.5rem;
-    }
-}
-
-/* 针对虚拟键盘弹出的情况 */
-@media (max-height: 400px) {
-    .chat-header {
-        min-height: 2.5rem;
-        padding: 0.25rem 0.5rem;
-    }
-    
-    .group-title {
-        font-size: 1rem;
-    }
-    
-    .location-text {
-        font-size: 0.75rem;
-    }
-    
-    .scroll-button {
-        bottom: 3.5rem;
-    }
-}
+<style lang="scss">
+@use '~/assets/scss/pages/group-chat';
 </style>

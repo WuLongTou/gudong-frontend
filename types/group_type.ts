@@ -52,3 +52,13 @@ export interface LeaveGroupRequest {
 export interface LeaveGroupResponse {
 }
 
+export interface NearbyGroup {
+  id: string;
+  name: string;
+  avatar?: string;
+  description: string;
+  memberCount: number;
+  distance: number;
+  createTime: string;
+}
+

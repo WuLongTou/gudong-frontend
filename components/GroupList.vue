@@ -1,11 +1,11 @@
 <template>
     <el-scrollbar v-if="showScroll" height="400px">
-        <div class="group-list">
-            <div v-for="group in groups" :key="group.group_id" class="group-item">
+        <div class="group-list-component">
+            <div v-for="group in groups" :key="group.group_id" class="group-list-item">
                 <el-avatar :size="40" shape="square" />
-                <div class="group-info">
-                    <h4 class="group-name">{{ group.name }}</h4>
-                    <p class="group-location">
+                <div class="group-list-info">
+                    <h4 class="group-list-name">{{ group.name }}</h4>
+                    <p class="group-list-location">
                         位置：{{ group.location_name }} · 成员 {{ group.member_count }} 人
                     </p>
                 </div>
@@ -13,7 +13,7 @@
                     加入
                 </el-button>
             </div>
-            <div v-if="groups.length === 0" class="empty-message">
+            <div v-if="groups.length === 0" class="group-list-empty">
                 {{ loading ? '加载中...' : '暂无数据' }}
             </div>
         </div>
@@ -44,13 +44,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.group-list {
+.group-list-component {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.group-item {
+.group-list-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -59,23 +59,23 @@ onMounted(() => {
     cursor: pointer;
 }
 
-.group-item:hover {
+.group-list-item:hover {
     background-color: #f3f4f6;
 }
 
-.group-info {
+.group-list-info {
     flex: 1;
     min-width: 0; /* 防止文本溢出 */
 }
 
-.group-name {
+.group-list-name {
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.group-location {
+.group-list-location {
     font-size: 0.875rem;
     color: #6b7280;
     white-space: nowrap;
@@ -83,7 +83,7 @@ onMounted(() => {
     text-overflow: ellipsis;
 }
 
-.empty-message {
+.group-list-empty {
     text-align: center;
     color: #9ca3af;
     padding: 1rem 0;
@@ -91,7 +91,7 @@ onMounted(() => {
 
 /* 针对手机竖屏模式的优化 */
 @media (max-aspect-ratio: 2/3) {
-    .group-item {
+    .group-list-item {
         padding: 0.75rem 0.5rem;
     }
     
@@ -104,11 +104,11 @@ onMounted(() => {
 
 /* 针对极小屏幕的优化 */
 @media (max-width: 320px) {
-    .group-item {
+    .group-list-item {
         flex-wrap: wrap;
     }
     
-    .group-info {
+    .group-list-info {
         width: 100%;
         margin-bottom: 0.25rem;
     }

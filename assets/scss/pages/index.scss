@@ -1,0 +1,16 @@
+// index页面样式
+// 仅包含重定向页面的基础样式
+
+@use '../variables' as v;
+@use '../mixins' as m;
+
+// 重定向页面的基础样式
+.redirect-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: v.$text-color-secondary;
+  font-size: 14px;
+  background-color: v.$background-color-light;
+} 

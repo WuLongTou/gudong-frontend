@@ -1,0 +1,106 @@
+// 颜色
+$primary-color: var(--wx-primary, #07C160);
+$primary-color-dark: var(--wx-primary-dark, #069c50);
+$primary-color-darker: var(--wx-primary-darker, #058c47);
+$text-primary: var(--wx-text-primary, #2C2C2C);
+$text-regular: var(--wx-text-regular, #606266);
+$text-secondary: var(--wx-text-secondary, #909399);
+$border-color: var(--wx-border-color, #EBEEF5);
+$background-grey: var(--wx-background-grey, #F5F5F5);
+$background-white: var(--wx-background-white, #FFFFFF);
+$success-color: var(--wx-success, #67C23A);
+$success-color-dark: var(--wx-success-dark, #59a931);
+$warning-color: var(--wx-warning, #E6A23C);
+$warning-color-dark: var(--wx-warning-dark, #d99530);
+$danger-color: var(--wx-danger, #F56C6C);
+$danger-color-dark: var(--wx-danger-dark, #f43f3f);
+$info-color: var(--wx-info, #909399);
+$info-color-dark: var(--wx-info-dark, #82848a);
+
+// 文本颜色
+$text-color-primary: var(--wx-text-primary, #2C2C2C);
+$text-color-regular: var(--wx-text-regular, #606266);
+$text-color-secondary: var(--wx-text-secondary, #909399);
+$text-color-tertiary: var(--wx-text-tertiary, #A6A6A6);
+$text-color-light: var(--wx-text-light, #C0C4CC);
+$text-color-placeholder: var(--wx-text-placeholder, #C0C4CC);
+
+// 边框颜色
+$border-color: var(--wx-border-color, #DCDFE6);
+$border-color-light: var(--wx-border-color-light, #E4E7ED);
+$border-color-extra-light: var(--wx-border-color-extra-light, #EBEEF5);
+$border-color-dark: var(--wx-border-color-dark, #D4D7DE);
+
+// 背景颜色
+$background-color-base: var(--wx-background-base, #F5F7FA);
+$background-color-light: var(--wx-background-light, #F5F5F5);
+$background-color-white: var(--wx-background-white, #FFFFFF);
+$background-color-dark: var(--wx-background-dark, #F2F6FC);
+
+// 间距
+$space-xs: var(--wx-space-xs, 4px);
+$space-sm: var(--wx-space-sm, 8px);
+$space-md: var(--wx-space-md, 16px);
+$space-lg: var(--wx-space-lg, 24px);
+$space-xl: var(--wx-space-xl, 32px);
+$space-xxl: var(--wx-space-xxl, 48px);
+$space-xxxl: var(--wx-space-xxxl, 64px);
+
+// 字体
+$font-size-xs: var(--wx-font-size-xs, 10px);
+$font-size-sm: var(--wx-font-size-sm, 12px);
+$font-size-md: var(--wx-font-size-md, 14px);
+$font-size-lg: var(--wx-font-size-lg, 16px);
+$font-size-xl: var(--wx-font-size-xl, 18px);
+
+// 字体粗细
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// 圆角
+$border-radius-sm: var(--wx-border-radius-sm, 4px);
+$border-radius-md: var(--wx-border-radius-md, 8px);
+$border-radius-lg: var(--wx-border-radius-lg, 16px);
+$border-radius-round: var(--wx-border-radius-round, 50%);
+
+// 阴影
+$shadow-sm: var(--wx-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.1));
+$shadow-md: var(--wx-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
+$shadow-lg: var(--wx-shadow-lg, 0 6px 16px rgba(0, 0, 0, 0.2));
+
+// z-index层级
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+
+// 过渡动画
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
+$transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+// 容器尺寸
+$header-height: 60px;
+$footer-height: 60px;
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 80px;
+
+// 媒体查询断点
+$screen-xs: 480px;
+$screen-sm: 768px;
+$screen-md: 992px;
+$screen-lg: 1200px;
+$screen-xl: 1600px;
+
+// 特定组件尺寸
+$menu-button-size: var(--wx-menu-button-size, 56px);
+$avatar-size-sm: var(--wx-avatar-sm, 32px);
+$avatar-size-md: var(--wx-avatar-md, 40px);
+$avatar-size-lg: var(--wx-avatar-lg, 64px);
+$avatar-size-xl: var(--wx-avatar-xl, 80px); 

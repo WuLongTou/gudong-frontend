@@ -1,0 +1,63 @@
+// 默认主题变量
+:root {
+  // 主色调
+  --wx-primary: #07C160;
+  --wx-primary-dark: #069c50;
+  --wx-primary-darker: #058c47;
+  
+  // 文本颜色
+  --wx-text-primary: #2C2C2C;
+  --wx-text-regular: #606266;
+  --wx-text-secondary: #909399;
+  --wx-text-tertiary: #A6A6A6;
+  --wx-text-light: #C0C4CC;
+  --wx-text-placeholder: #C0C4CC;
+  
+  // 边框颜色
+  --wx-border-color: #DCDFE6;
+  --wx-border-color-light: #E4E7ED;
+  --wx-border-color-extra-light: #EBEEF5;
+  --wx-border-color-dark: #D4D7DE;
+  
+  // 背景颜色
+  --wx-background-base: #F5F7FA;
+  --wx-background-light: #F5F5F5;
+  --wx-background-white: #FFFFFF;
+  --wx-background-dark: #F2F6FC;
+  
+  // 功能色
+  --wx-success: #67C23A;
+  --wx-warning: #E6A23C;
+  --wx-danger: #F56C6C;
+  --wx-info: #909399;
+  
+  // 间距
+  --wx-space-xs: 4px;
+  --wx-space-sm: 8px;
+  --wx-space-md: 16px;
+  --wx-space-lg: 24px;
+  --wx-space-xl: 32px;
+  
+  // 字体大小
+  --wx-font-size-xs: 10px;
+  --wx-font-size-sm: 12px;
+  --wx-font-size-md: 14px;
+  --wx-font-size-lg: 16px;
+  --wx-font-size-xl: 18px;
+  
+  // 圆角
+  --wx-border-radius-sm: 4px;
+  --wx-border-radius-md: 8px;
+  --wx-border-radius-lg: 16px;
+  --wx-border-radius-round: 50%;
+  
+  // 阴影
+  --wx-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --wx-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --wx-shadow-lg: 0 6px 16px rgba(0, 0, 0, 0.2);
+  
+  // 过渡动画
+  --wx-transition-fast: 0.2s ease;
+  --wx-transition-normal: 0.3s ease;
+  --wx-transition-slow: 0.5s ease;
+} 

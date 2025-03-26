@@ -46,29 +46,10 @@
 import { ElMessage, ElInput } from 'element-plus'
 import { ref, nextTick, onMounted } from 'vue'
 import { Edit } from '@element-plus/icons-vue'
-import { updateNickname } from '~/utils/api'
-import { useNuxtApp } from '#app'
-import type { StorageAdapter } from '~/plugins/storage'
+import { updateNickname } from '~/utils/api/modules/user'
+import { useUserStore } from '~/stores/user'
 
-// 安全获取storage
-function getStorage(): StorageAdapter {
-    let storage
-    try {
-        const nuxtApp = useNuxtApp()
-        storage = nuxtApp.$storage as StorageAdapter
-    } catch (e) {
-        console.error('获取$storage失败:', e)
-        // 创建一个基于localStorage的后备实现
-        storage = {
-            getItem: (key: string) => localStorage.getItem(key),
-            setItem: (key: string, value: string) => localStorage.setItem(key, value),
-            removeItem: (key: string) => localStorage.removeItem(key)
-        }
-    }
-    return storage
-}
-
-const storage = getStorage()
+const userStore = useUserStore()
 
 const props = defineProps<{
     nickname: string
@@ -83,12 +64,7 @@ const editingNickname = ref('')
 const saving = ref(false)
 const inputRef = ref<InstanceType<typeof ElInput> | null>(null)
 
-onMounted(() => {
-    console.log('NicknameEditor组件挂载成功，当前昵称:', props.nickname)
-})
-
 function openDialog() {
-    console.log('打开昵称编辑对话框:', props.nickname)
     editingNickname.value = props.nickname
     dialogVisible.value = true
     // 等待对话框显示后聚焦输入框
@@ -105,30 +81,14 @@ async function saveNickname() {
     
     try {
         saving.value = true
-        console.log('更新昵称:', editingNickname.value.trim())
         
-        // 安全获取临时用户状态
-        let isTemporary = 'unknown'
-        try {
-            isTemporary = storage.getItem('is_temporary') || 'false'
-        } catch (e) {
-            console.error('获取临时用户状态失败:', e)
-            isTemporary = localStorage.getItem('is_temporary') || 'false'
-        }
-        
-        console.log('临时用户状态:', isTemporary)
         const result = await updateNickname({ nickname: editingNickname.value.trim() })
-        console.log('API响应结果:', result)
         if (result.code === 0) {
-            emit('update:nickname', editingNickname.value.trim())
+            const newNickname = editingNickname.value.trim()
+            emit('update:nickname', newNickname)
             
-            // 安全更新存储的昵称
-            try {
-                storage.setItem('nickname', editingNickname.value.trim())
-            } catch (e) {
-                console.error('更新存储的昵称失败:', e)
-                localStorage.setItem('nickname', editingNickname.value.trim())
-            }
+            // 直接更新用户状态
+            userStore.nickname = newNickname
             
             ElMessage.success('昵称更新成功')
             dialogVisible.value = false

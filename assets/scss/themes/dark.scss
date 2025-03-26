@@ -1,0 +1,38 @@
+// 暗色主题变量
+.dark-theme {
+  // 主色调
+  --wx-primary: #07C160;
+  --wx-primary-dark: #05a050;
+  --wx-primary-darker: #048040;
+  
+  // 文本颜色
+  --wx-text-primary: #E8E8E8;
+  --wx-text-regular: #BFBFBF;
+  --wx-text-secondary: #8C8C8C;
+  --wx-text-tertiary: #595959;
+  --wx-text-light: #434343;
+  --wx-text-placeholder: #595959;
+  
+  // 边框颜色
+  --wx-border-color: #434343;
+  --wx-border-color-light: #303030;
+  --wx-border-color-extra-light: #262626;
+  --wx-border-color-dark: #595959;
+  
+  // 背景颜色
+  --wx-background-base: #1F1F1F;
+  --wx-background-light: #262626;
+  --wx-background-white: #121212;
+  --wx-background-dark: #000000;
+  
+  // 功能色
+  --wx-success: #5CB85C;
+  --wx-warning: #F0AD4E;
+  --wx-danger: #D9534F;
+  --wx-info: #5BC0DE;
+  
+  // 阴影 - 暗色模式下阴影更强烈
+  --wx-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --wx-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --wx-shadow-lg: 0 6px 16px rgba(0, 0, 0, 0.5);
+} 

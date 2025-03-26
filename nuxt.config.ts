@@ -18,5 +18,15 @@ export default defineNuxtConfig({
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASEURL || '/'
     }
   },
-  modules: ['@element-plus/nuxt']
+  css: [
+    '~/assets/scss/main.scss'
+  ],
+  modules: [
+    '@element-plus/nuxt',
+    '@pinia/nuxt',
+    'pinia-plugin-persistedstate',
+  ],
+  imports: {
+    dirs: ['stores'],
+  }
 })
