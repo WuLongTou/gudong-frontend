@@ -24,7 +24,7 @@
 
       <!-- 菜单项 - 放在主按钮后面，以确保在DOM中后渲染，层级更高 -->
       <div v-for="(item, index) in items" :key="item.id" class="solar-menu-item" :class="{ 'active': active }"
-        :style="getMenuItemStyle(index)" @click="handleMenuItemClick(item)"
+        :style="menuItemStyles[index] || {}" @click="handleMenuItemClick(item)"
         @touchstart.stop="() => handleMenuItemTouchStart(item)">
         <div class="menu-item-inner" :class="`menu-icon-${item.id}`">
           <el-icon :size="24">
@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { Plus, Close } from '@element-plus/icons-vue'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { useDraggable } from '~/composables/useDraggable'
 
 defineOptions({
@@ -75,12 +75,18 @@ const initialPosition = {
   y: props.initialY || 0
 }
 
+// 存储每个菜单项的样式
+const menuItemStyles = ref<Array<{transform: string, transitionDelay: string}>>([])
+
 // 在客户端环境中更新默认位置
 onMounted(() => {
   if (typeof window !== 'undefined' && !props.initialX && !props.initialY) {
     initialPosition.x = window.innerWidth / 2
     initialPosition.y = window.innerHeight - 120
   }
+  
+  // 初始化并更新菜单项样式
+  updateMenuItemStyles()
 })
 
 // 使用useDraggable组合式函数管理拖拽
@@ -92,6 +98,88 @@ const {
   handleMouseDown,
   handleTouchStart 
 } = useDraggable(initialPosition)
+
+// 监听位置变化，更新菜单项样式
+watch([position, active], () => {
+  if (typeof window !== 'undefined') {
+    updateMenuItemStyles()
+  }
+}, { deep: true })
+
+// 计算菜单项样式的函数（仅在客户端执行）
+const updateMenuItemStyles = () => {
+  if (typeof window === 'undefined') return
+
+  const itemCount = props.items.length
+  const radius = 100 // 菜单半径
+  
+  // 判断菜单按钮是否靠近屏幕边缘
+  const isNearLeft = position.x < 100
+  const isNearRight = position.x > (window.innerWidth - 100)
+  const isNearTop = position.y < 100
+  const isNearBottom = position.y > (window.innerHeight - 100)
+  
+  // 基于位置调整角度范围
+  let startAngle = -Math.PI / 2 // 默认从顶部开始
+  let endAngle = startAngle + 2 * Math.PI // 默认做一个完整的圆
+  
+  // 根据边缘位置调整角度范围
+  if (isNearLeft && isNearTop) {
+    // 左上角：只在右下方显示 (0 to PI/2)
+    startAngle = 0
+    endAngle = Math.PI / 2
+  } else if (isNearRight && isNearTop) {
+    // 右上角：只在左下方显示 (PI/2 to PI)
+    startAngle = Math.PI / 2
+    endAngle = Math.PI
+  } else if (isNearRight && isNearBottom) {
+    // 右下角：只在左上方显示 (PI to 3PI/2)
+    startAngle = Math.PI
+    endAngle = 3 * Math.PI / 2
+  } else if (isNearLeft && isNearBottom) {
+    // 左下角：只在右上方显示 (3PI/2 to 2PI)
+    startAngle = 3 * Math.PI / 2
+    endAngle = 2 * Math.PI
+  } else if (isNearLeft) {
+    // 左侧：只在右侧显示 (-PI/2 to PI/2)
+    startAngle = -Math.PI / 2
+    endAngle = Math.PI / 2
+  } else if (isNearRight) {
+    // 右侧：只在左侧显示 (PI/2 to 3PI/2)
+    startAngle = Math.PI / 2
+    endAngle = 3 * Math.PI / 2
+  } else if (isNearTop) {
+    // 顶部：只在下方显示 (0 to PI)
+    startAngle = 0
+    endAngle = Math.PI
+  } else if (isNearBottom) {
+    // 底部：只在上方显示 (PI to 2PI)
+    startAngle = Math.PI
+    endAngle = 2 * Math.PI
+  }
+  
+  // 计算所有菜单项样式
+  const styles = props.items.map((_, index) => {
+    // 计算每个菜单项的角度
+    const angleRange = endAngle - startAngle
+    const angleStep = angleRange / itemCount
+    const angle = startAngle + index * angleStep
+    
+    // 计算菜单项位置
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
+    
+    // 菜单项过渡延迟
+    const delay = index * 0.05
+    
+    return {
+      transform: `translate(${x}px, ${y}px)`,
+      transitionDelay: `${delay}s`
+    }
+  })
+  
+  menuItemStyles.value = styles
+}
 
 // 处理按钮的触摸开始
 const handleButtonTouchStart = (e: TouchEvent) => {
@@ -125,81 +213,6 @@ const handleMenuItemTouchStart = (item: MenuItem) => {
   }
   
   document.addEventListener('touchend', touchEndHandler, { once: true })
-}
-
-// 自定义菜单项样式计算
-const getMenuItemStyle = (index: number) => {
-  const itemCount = props.items.length
-  const radius = 100 // 菜单半径
-  
-  // 判断菜单按钮是否靠近屏幕边缘（仅在客户端环境中判断）
-  let isNearLeft = false
-  let isNearRight = false
-  let isNearTop = false
-  let isNearBottom = false
-
-  if (typeof window !== 'undefined') {
-    isNearLeft = position.x < 100;
-    isNearRight = position.x > (window.innerWidth - 100);
-    isNearTop = position.y < 100;
-    isNearBottom = position.y > (window.innerHeight - 100);
-  }
-  
-  // 基于位置调整角度范围
-  let startAngle = -Math.PI / 2; // 默认从顶部开始
-  let endAngle = startAngle + 2 * Math.PI; // 默认做一个完整的圆
-  
-  // 根据边缘位置调整角度范围
-  if (isNearLeft && isNearTop) {
-    // 左上角：只在右下方显示 (0 to PI/2)
-    startAngle = 0;
-    endAngle = Math.PI / 2;
-  } else if (isNearRight && isNearTop) {
-    // 右上角：只在左下方显示 (PI/2 to PI)
-    startAngle = Math.PI / 2;
-    endAngle = Math.PI;
-  } else if (isNearRight && isNearBottom) {
-    // 右下角：只在左上方显示 (PI to 3PI/2)
-    startAngle = Math.PI;
-    endAngle = 3 * Math.PI / 2;
-  } else if (isNearLeft && isNearBottom) {
-    // 左下角：只在右上方显示 (3PI/2 to 2PI)
-    startAngle = 3 * Math.PI / 2;
-    endAngle = 2 * Math.PI;
-  } else if (isNearLeft) {
-    // 左侧：只在右侧显示 (-PI/2 to PI/2)
-    startAngle = -Math.PI / 2;
-    endAngle = Math.PI / 2;
-  } else if (isNearRight) {
-    // 右侧：只在左侧显示 (PI/2 to 3PI/2)
-    startAngle = Math.PI / 2;
-    endAngle = 3 * Math.PI / 2;
-  } else if (isNearTop) {
-    // 顶部：只在下方显示 (0 to PI)
-    startAngle = 0;
-    endAngle = Math.PI;
-  } else if (isNearBottom) {
-    // 底部：只在上方显示 (PI to 2PI)
-    startAngle = Math.PI;
-    endAngle = 2 * Math.PI;
-  }
-  
-  // 计算每个菜单项的角度
-  const angleRange = endAngle - startAngle;
-  const angleStep = angleRange / itemCount;
-  const angle = startAngle + index * angleStep;
-  
-  // 计算菜单项位置
-  const x = Math.cos(angle) * radius;
-  const y = Math.sin(angle) * radius;
-  
-  // 菜单项过渡延迟
-  const delay = index * 0.05;
-  
-  return {
-    transform: `translate(${x}px, ${y}px)`,
-    transitionDelay: `${delay}s`
-  }
 }
 
 // 打开/关闭菜单

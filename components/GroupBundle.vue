@@ -1,43 +1,53 @@
 <template>
-    <!-- 群组搜索 -->
-    <el-card class="group-card">
-        <div class="search-container">
-            <el-input v-model="wantedGroupName" placeholder="输入你想搜索的群组吧" @keyup.enter="handleSearch" clearable>
-                <template #append>
-                    <el-button type="primary" @click="handleSearch" :loading="searching">
-                        <el-icon>
-                            <Search />
-                        </el-icon>
-                        搜索
-                    </el-button>
-                </template>
-            </el-input>
-        </div>
-        <el-divider />
-        <el-button class="create-button" type="primary" @click="showCreateDialog = true">
-            增加群组
-        </el-button>
-    </el-card>
-
-    <!-- 新增群组弹窗 -->
-    <el-dialog v-model="showCreateDialog" title="创建新群组" class="group-dialog">
-        <el-form :model="dialogForm" label-width="5rem">
-            <el-form-item label="群组名称" required>
-                <el-input v-model="dialogForm.name" placeholder="请输入群组名称" clearable />
-            </el-form-item>
-            <el-form-item label="当前位置">
-                <el-input :model-value="locationName" readonly />
-                <div class="group-location-info">
-                    坐标：{{ location.latitude.toFixed(4) }}, {{ location.longitude.toFixed(4) }}
+    <el-tabs v-model="activeTabValue" class="group-tabs">
+        <el-tab-pane label="搜索群组" name="search">
+            <!-- 群组搜索 -->
+            <el-card class="group-card">
+                <div class="search-container">
+                    <el-input v-model="wantedGroupName" placeholder="输入你想搜索的群组吧" @keyup.enter="handleSearch" clearable>
+                        <template #append>
+                            <el-button type="primary" @click="handleSearch" :loading="searching">
+                                <el-icon>
+                                    <Search />
+                                </el-icon>
+                                搜索
+                            </el-button>
+                        </template>
+                    </el-input>
                 </div>
-            </el-form-item>
-        </el-form>
+            </el-card>
 
-        <template #footer>
-            <el-button @click="showCreateDialog = false">取消</el-button>
-            <el-button type="primary" @click="handleCreateGroup">创建</el-button>
-        </template>
-    </el-dialog>
+            <!-- 群组列表 -->
+            <el-card class="mt-4">
+                <div class="group-list-container">
+                    <div class="group-list-title">
+                        附近群组列表
+                    </div>
+                    <GroupList :groups="groupsNearby" :show-join-button="true" @join="handleJoinGroup" show-scroll />
+                </div>
+            </el-card>
+        </el-tab-pane>
+
+        <el-tab-pane label="创建群组" name="create">
+            <!-- 创建群组表单 -->
+            <el-card class="group-card">
+                <el-form :model="dialogForm" label-width="5rem">
+                    <el-form-item label="群组名称" required>
+                        <el-input v-model="dialogForm.name" placeholder="请输入群组名称" clearable />
+                    </el-form-item>
+                    <el-form-item label="当前位置">
+                        <el-input :model-value="locationName" readonly />
+                        <div class="group-location-info">
+                            坐标：{{ location.latitude.toFixed(4) }}, {{ location.longitude.toFixed(4) }}
+                        </div>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="handleCreateGroup" class="create-button">创建群组</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-card>
+        </el-tab-pane>
+    </el-tabs>
 
     <!-- 搜索结果弹窗 -->
     <el-dialog v-model="showResults" title="搜索结果" :modal="true" class="search-dialog" center>
@@ -47,43 +57,46 @@
             没有找到相关群组
         </div>
     </el-dialog>
-
-    <!-- 群组列表 -->
-    <el-card>
-        <div class="group-list-container">
-            <div class="group-list-title">
-                附近群组列表
-            </div>
-            <GroupList :groups="groupsNearby" :show-join-button="true" @join="handleJoinGroup" show-scroll />
-        </div>
-    </el-card>
 </template>
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
 import type { GroupInfo, JoinGroupResponse } from '~/types/group_type';
 import type { MapLocation } from '~/types/map_type';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, defineEmits, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { createGroup, queryGroupsByName, queryGroupsByLocation, joinGroup } from '~/utils/api/modules/group';
 import { debounce } from 'lodash-es';
+import { useRouter } from 'vue-router';
 import GroupList from './GroupList.vue'
 import type { Result } from '~/types/common';
 import { handleApiResponse, handleApiError } from '~/utils/helpers/responseHandler';
+import { useActivity } from '~/composables/useActivity';
 
 const props = defineProps<{
     location: MapLocation
     locationName: string
+    activeTab?: 'search' | 'create' // 新增属性，用于外部控制显示哪个标签页
 }>()
+
+const emit = defineEmits(['refresh-activities', 'update:activeTab'])
+
+// 通过计算属性来处理双向绑定的activeTab
+const activeTabValue = computed({
+    get: () => props.activeTab || 'search',
+    set: (value) => emit('update:activeTab', value)
+})
 
 const wantedGroupName = ref('')
 const groupsNearby = ref<GroupInfo[]>([])
 const showResults = ref(false);
 const searching = ref(false);
 const searchResults = ref<GroupInfo[]>([]);
-const showCreateDialog = ref(false)
 const dialogForm = ref({
     name: ''
 })
+
+const router = useRouter()
+const { fetchRecentActivities } = useActivity()
 
 watch(props, () => {
     getNearbyGroups()
@@ -153,6 +166,16 @@ const getNearbyGroups = async () => {
     }
 }
 
+// 在群组操作后刷新附近活动
+const refreshActivities = async () => {
+    try {
+        await fetchRecentActivities(props.location, 5000, 20)
+        emit('refresh-activities')
+    } catch (error) {
+        console.error('刷新活动失败', error)
+    }
+}
+
 const handleCreateGroup = async () => {
     if (!dialogForm.value.name.trim()) {
         ElMessage.warning('请输入群组名称')
@@ -176,9 +199,11 @@ const handleCreateGroup = async () => {
         });
         
         if (success) {
-            showCreateDialog.value = false
             dialogForm.value.name = '' // 清空表单
             getNearbyGroups() // 刷新列表
+            await refreshActivities() // 刷新活动列表
+            // 创建成功后切换到搜索标签页
+            activeTabValue.value = 'search'
         }
     } catch (error) {
         handleApiError(error, '创建群组失败');
@@ -186,7 +211,6 @@ const handleCreateGroup = async () => {
 }
 
 async function handleJoinGroup(group: GroupInfo) {
-    const router = useRouter()
     showResults.value = false;
     
     try {
@@ -209,22 +233,23 @@ async function handleJoinGroup(group: GroupInfo) {
 }
 
 // 提取共用的加入群组和导航逻辑
-async function joinGroupAndNavigate(groupId: string, message?: string) {
-    const router = useRouter()
+async function joinGroupAndNavigate(groupId: string, password?: string) {
     const params: any = { groupId };
-    if (message) params.message = message;
+    if (password) params.password = password;
     
     try {
         const response = await joinGroup(params);
         
         const { success } = handleApiResponse<JoinGroupResponse>(response, {
-            successMessage: '',
-            errorMessage: '加入群组失败',
-            showSuccessMessage: false
+            successMessage: '加入成功',
+            errorMessage: '加入群组失败'
         });
         
         if (success) {
-            router.push(`/group_chat?group_id=${groupId}`);
+            getNearbyGroups(); // 刷新列表
+            await refreshActivities(); // 刷新活动列表
+            // 导航到群聊页面
+            router.push(`/group_chat?groupId=${groupId}`);
         }
     } catch (error) {
         handleApiError(error, '加入群组失败');
@@ -234,10 +259,9 @@ async function joinGroupAndNavigate(groupId: string, message?: string) {
 // 监听搜索框内容变化，实现防抖搜索
 watch(wantedGroupName, handleSearchInput)
 
-// 监听创建群组对话框显示状态
-watch(showCreateDialog, (newVal) => {
-    if (newVal && wantedGroupName.value.trim()) {
-        // 当对话框显示并且搜索框有内容时，自动填充到创建群组名称
+// 监听切换标签页时，如果切换到创建页面且搜索框有内容，自动填充到创建框
+watch(activeTabValue, (newVal) => {
+    if (newVal === 'create' && wantedGroupName.value.trim()) {
         dialogForm.value.name = wantedGroupName.value.trim()
     }
 })
@@ -250,6 +274,10 @@ onMounted(() => {
 <style lang="scss" scoped>
 @use '@/assets/scss/variables' as v;
 @use '@/assets/scss/mixins' as m;
+
+.group-tabs {
+    width: 100%;
+}
 
 .group-list-container {
     display: flex;
@@ -269,10 +297,6 @@ onMounted(() => {
     font-size: var(--font-size-sm);
 }
 
-.group-dialog {
-    width: 35%;
-}
-
 .search-dialog {
     width: 60%;
 }
@@ -282,8 +306,12 @@ onMounted(() => {
 }
 
 .create-button {
-    margin-top: var(--spacing-sm);
     width: 100%;
+    margin-top: var(--spacing-md);
+}
+
+.mt-4 {
+    margin-top: 1rem;
 }
 
 // 媒体查询使用混合器
@@ -298,8 +326,7 @@ onMounted(() => {
     }
 
     // 调整对话框宽度 - 使用更具体的选择器提高优先级
-    :deep(.el-dialog.search-dialog),
-    :deep(.el-dialog.group-dialog) {
+    :deep(.el-dialog.search-dialog) {
         width: 90%;
         max-width: 90vw;
     }

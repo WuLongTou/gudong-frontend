@@ -48,11 +48,9 @@ export const createActivity = (params: CreateActivityParams) => {
  */
 export const getNearbyActivities = (params: GetNearbyParams) => {
   return get<PaginatedResult<Activity>>(ACTIVITY_API.NEARBY, {
-    params: {
-      ...params.location,
-      radius: params.radius,
-      limit: params.limit
-    }
+    ...params.location,
+    radius: params.radius,
+    limit: params.limit
   })
 }
 
@@ -61,11 +59,9 @@ export const getNearbyActivities = (params: GetNearbyParams) => {
  */
 export const getNearbyUsers = (params: GetNearbyParams) => {
   return get<PaginatedResult<NearbyUser>>(USER_API.NEARBY, {
-    params: {
-      ...params.location,
-      radius: params.radius,
-      limit: params.limit
-    }
+    ...params.location,
+    radius: params.radius,
+    limit: params.limit
   })
 }
 

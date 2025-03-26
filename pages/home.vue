@@ -53,7 +53,12 @@
         <!-- 群组功能弹窗 -->
         <el-dialog v-model="dialogs.groupManager" title="群组" width="90%" class="group-dialog"
             :modal-append-to-body="false" :append-to-body="true" center>
-            <GroupBundle :location="currentLocation" :location-name="currentLocationName" />
+            <GroupBundle 
+                :location="currentLocation" 
+                :location-name="currentLocationName" 
+                v-model:activeTab="groupActiveTab"
+                @refresh-activities="refreshActivityData(currentLocation)"
+            />
         </el-dialog>
 
         <!-- 位置信息弹窗 -->
@@ -124,6 +129,7 @@ import PageContainer from '~/components/layout/PageContainer/PageContainer.vue'
 import TopInfoBar from '~/components/layout/Navbar/TopInfoBar.vue'
 import MapControls from '~/components/features/map/MapControls.vue'
 import MapBundle from '~/components/MapBundle.vue'
+import GroupBundle from '~/components/GroupBundle.vue'
 import CreateActivityButton from '~/components/features/activity/CreateActivityButton.vue'
 import ActivitySidebar from '~/components/layout/Sidebar/ActivitySidebar.vue'
 import ActivityList from '~/components/features/activity/ActivityList.vue'
@@ -156,13 +162,18 @@ const { nearbyUsers, recentActivities, nearbyGroups, fetchNearbyUsers, fetchRece
 // 监听位置变化
 watch(currentLocation, async (newLocation) => {
     if (newLocation) {
-        await Promise.all([
-            fetchNearbyUsers(newLocation, 5000, 20),
-            fetchRecentActivities(newLocation, 5000, 20),
-            fetchNearbyGroups(newLocation)
-        ])
+        await refreshActivityData(newLocation)
     }
 })
+
+// 刷新活动数据的方法
+const refreshActivityData = async (location: MapLocation) => {
+    await Promise.all([
+        fetchNearbyUsers(location, 5000, 20),
+        fetchRecentActivities(location, 5000, 20),
+        fetchNearbyGroups(location)
+    ])
+}
 
 // 加载页面数据
 onMounted(async () => {
@@ -258,6 +269,9 @@ const reloadCurrentPosition = async () => {
         ElMessage.error('位置更新失败')
     }
 }
+
+// GroupBundle活动标签页
+const groupActiveTab = ref<'search' | 'create'>('search')
 
 // 定义菜单项
 const menuItems = ref<MenuItem[]>([
@@ -379,7 +393,7 @@ const viewGroupDetails = (groupId: string) => {
 // 提交活动
 const submitActivity = async () => {
     if (!activityForm.type) {
-        ElMessage.warning('请选择活动类型')
+        ElMessage.warning('请选择动态类型')
         return
     }
 
@@ -387,17 +401,20 @@ const submitActivity = async () => {
         await activity.createActivity(
             currentLocation.value,
             activityForm.type,
-            activityForm.details
+            activityForm.details || undefined
         )
-        ElMessage.success('活动发布成功')
+        
+        ElMessage.success('发布成功')
         dialogs.createActivity = false
-        // 清空表单
+        
+        // 重置表单
+        activityForm.type = ''
         activityForm.details = ''
+        
         // 刷新活动列表
-        await fetchRecentActivities(currentLocation.value, 5000, 20)
-    } catch (err) {
-        console.error('发布活动失败', err)
-        ElMessage.error('发布失败，请重试')
+        await refreshActivityData(currentLocation.value)
+    } catch (err: any) {
+        ElMessage.error(err.message || '发布失败')
     }
 }
 
@@ -420,27 +437,8 @@ const tabs = [
 
 // 处理打开群组管理器
 const handleOpenGroupManager = (tab: 'search' | 'create') => {
-    dialogs.groupManager = true
-    
-    // 在下一个微任务循环中获取GroupBundle组件并执行相应操作
-    nextTick(() => {
-        const groupBundle = document.querySelector('.group-dialog')
-        if (groupBundle) {
-            if (tab === 'create') {
-                // 直接打开创建群组对话框
-                const createButton = groupBundle.querySelector('.create-button') as HTMLElement
-                if (createButton) {
-                    createButton.click()
-                }
-            } else if (tab === 'search') {
-                // 聚焦到搜索输入框
-                const searchInput = groupBundle.querySelector('.search-container input') as HTMLInputElement
-                if (searchInput) {
-                    searchInput.focus()
-                }
-            }
-        }
-    })
+    groupActiveTab.value = tab // 设置要显示的标签页
+    dialogs.groupManager = true // 打开对话框
 }
 </script>
 
