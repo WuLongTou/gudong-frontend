@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import { ActivityType } from '~/types/api/activity'
 
 /**
  * 格式化工具composable
@@ -164,6 +165,35 @@ export function useFormatters() {
     return current.diff(prev, 'minute') > minutes
   }
 
+  /**
+   * 活动类型格式化
+   * 将活动类型转换为友好的显示文本
+   * @param type 活动类型字符串
+   * @returns 格式化后的活动类型文本
+   */
+  const formatActivityType = (type: ActivityType | string): string => {
+    if (type === ActivityType.GroupCreated) return '创建群组'
+    if (type === ActivityType.UserJoined) return '加入群组'
+    if (type === ActivityType.MessageSent) return '发送消息'
+    if (type === ActivityType.UserCheckedIn) return '签到'
+    
+    // 处理旧版类型 - 为了兼容性
+    switch (type) {
+      case 'USER_ONLINE': return '上线'
+      case 'USER_CHECKIN': return '签到'
+      case 'GROUP_CREATE': return '创建群组'
+      case 'GROUP_JOIN': return '加入群组'
+      case 'GROUP_LEAVE': return '离开群组'
+      case 'GROUP_MEMBER_ADDED': return '新成员加入'
+      case 'GROUP_MEMBER_REMOVED': return '成员被移除'
+      case 'GROUP_UPDATE': return '群组更新'
+      case 'FRIEND_REQUEST': return '好友请求'
+      case 'FRIEND_ACCEPT': return '接受好友'
+      case 'MESSAGE_SENT': return '发送消息'
+      default: return String(type)
+    }
+  }
+
   return {
     // 基础格式化
     formatRelativeTime,
@@ -173,6 +203,8 @@ export function useFormatters() {
     // 聊天应用格式化
     formatTimeDivider,
     formatMessageTime,
-    isTimeGapGreaterThan
+    isTimeGapGreaterThan,
+    // 业务格式化
+    formatActivityType
   }
 } 

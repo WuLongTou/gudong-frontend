@@ -1,126 +1,119 @@
-import { get, post, put, del } from '../request'
-import type { Result } from '~/types/common'
-import type { PaginatedResult, GeoLocation } from '~/types/api'
+import { get, post } from '../request'
+import type { EmptyResponse } from '../request'
+import { GROUP_API } from '../paths'
+import type { EmptyRequestParams } from '~/types/common'
 import type {
   NewGroupRequest,
-  QueryGroupInfoByNameRequest,
-  QueryGroupInfoByIdRequest,
-  QueryGroupInfoByLocationRequest,
-  GroupInfo as GroupInfoDTO,
+  GroupInfo,
   JoinGroupRequest,
   JoinGroupResponse,
   LeaveGroupRequest,
-  LeaveGroupResponse,
   KeepAliveInGroupRequest,
   KeepAliveInGroupResponse,
-} from '~/types/group_type'
-import { GROUP_API } from '../paths'
+  GroupMember,
+  QueryGroupInfoByIdRequest,
+  QueryGroupInfoByNameRequest,
+  QueryGroupInfoByLocationRequest,
+  SetMemberRoleRequest
+} from '~/types/api/group'
+import type { ApiResponse } from '~/types/common'
 
-// 统一响应类型
-type APIResponse<T> = Promise<Result<T>>;
+/**
+ * 创建群组
+ */
+export const createGroup = (data: NewGroupRequest) =>
+  post<GroupInfo, NewGroupRequest>(GROUP_API.CREATE, data)
 
-export interface GroupInfo {
-  id: string
-  name: string
-  description?: string
-  avatarUrl?: string
-  ownerId: string
-  memberCount: number
-  maxMembers: number
-  isPublic: boolean
-  location?: GeoLocation
-  createdAt: string
-  updatedAt: string
+/**
+ * 获取群组信息（通过ID）
+ */
+export const getGroupById = (groupId: string) =>
+  get<GroupInfo, QueryGroupInfoByIdRequest>(GROUP_API.BY_ID, { group_id: groupId })
+
+/**
+ * 获取群组信息（通过名称）
+ */
+export const getGroupByName = (name: string) =>
+  get<GroupInfo[], QueryGroupInfoByNameRequest>(GROUP_API.BY_NAME, { name })
+
+/**
+ * 获取群组信息（通过位置）
+ */
+export const getGroupByLocation = (params: { latitude: number, longitude: number, radius?: number }) =>
+  get<GroupInfo[], QueryGroupInfoByLocationRequest>(GROUP_API.BY_LOCATION, params)
+
+/**
+ * 获取附近群组
+ */
+export const getNearbyGroups = async (
+  params: { latitude: number, longitude: number },
+  radius: number = 5000
+): Promise<ApiResponse<GroupInfo[]>> => {
+  const response = await get<any, QueryGroupInfoByLocationRequest>(
+    GROUP_API.NEARBY,
+    { ...params, radius }
+  );
+
+  // 标准化API响应格式
+  if (response.code === 0 && response.resp_data) {
+    const data = response.resp_data;
+    let standardizedData: GroupInfo[] = [];
+
+    if (Array.isArray(data)) {
+      standardizedData = data;
+    } else if (data && typeof data === 'object' && data.items && Array.isArray(data.items)) {
+      standardizedData = data.items;
+    }
+
+    return {
+      code: response.code,
+      msg: response.msg || '',
+      resp_data: standardizedData
+    };
+  }
+
+  return response as ApiResponse<GroupInfo[]>;
 }
 
-export interface CreateGroupParams {
-  name: string
-  description?: string
-  avatarUrl?: string
-  isPublic: boolean
-  maxMembers?: number
-  location?: GeoLocation
-}
+/**
+ * 加入群组
+ */
+export const joinGroup = (data: JoinGroupRequest) =>
+  post<JoinGroupResponse, JoinGroupRequest>(GROUP_API.JOIN, data)
 
-export interface UpdateGroupParams {
-  name?: string
-  description?: string
-  avatarUrl?: string
-  isPublic?: boolean
-  maxMembers?: number
-  location?: GeoLocation
-}
+/**
+ * 离开群组
+ */
+export const leaveGroup = (data: LeaveGroupRequest) =>
+  post<EmptyResponse, LeaveGroupRequest>(GROUP_API.LEAVE, data)
 
-export interface GroupMember {
-  id: string
+/**
+ * 获取群组成员
+ */
+export const getGroupMembers = (groupId: string) =>
+  get<GroupMember[], QueryGroupInfoByIdRequest>(GROUP_API.MEMBERS(groupId), { group_id: groupId })
+
+/**
+ * 设置成员角色
+ */
+export const setMemberRole = (
+  groupId: string,
+  userId: string,
+  role: string
+) =>
+  post<EmptyResponse, SetMemberRoleRequest>(GROUP_API.SET_ROLE(groupId, userId), { role })
+
+/**
+ * 移除群组成员
+ */
+export const removeGroupMember = (
+  groupId: string,
   userId: string
-  groupId: string
-  nickname: string
-  avatarUrl?: string
-  role: 'owner' | 'admin' | 'member'
-  joinedAt: string
-}
+) =>
+  post<EmptyResponse, EmptyRequestParams>(GROUP_API.REMOVE_MEMBER(groupId, userId), {})
 
-export interface JoinGroupParams {
-  groupId: string
-  message?: string
-}
-
-// 群组相关API
-export const createGroup = (params: CreateGroupParams) => {
-  return post<Result<GroupInfo>>(GROUP_API.CREATE, params)
-}
-
-export const queryGroupsByName = (params: QueryGroupInfoByNameRequest): APIResponse<GroupInfo[]> =>
-  get(GROUP_API.BY_NAME, params);
-
-export const queryGroupById = (params: QueryGroupInfoByIdRequest): APIResponse<GroupInfo> =>
-  get(GROUP_API.BY_ID, params);
-
-export const queryGroupsByLocation = (params: QueryGroupInfoByLocationRequest): APIResponse<GroupInfo[]> =>
-  get(GROUP_API.BY_LOCATION, params);
-
-export const updateGroup = (groupId: string, params: UpdateGroupParams) => {
-  return put<Result<GroupInfo>>(GROUP_API.DETAIL(groupId), params)
-}
-
-export const getGroupDetail = (groupId: string) => {
-  return get<Result<GroupInfo>>(GROUP_API.DETAIL(groupId))
-}
-
-export const getUserGroups = () => {
-  return get<PaginatedResult<GroupInfo>>(GROUP_API.USER_GROUPS)
-}
-
-export const getNearbyGroups = (location: GeoLocation, radius: number = 5000) => {
-  return get<PaginatedResult<GroupInfo>>(GROUP_API.NEARBY, {
-    ...location,
-    radius
-  })
-}
-
-export const joinGroup = (params: JoinGroupParams) => {
-  return post<Result<null>>(GROUP_API.JOIN, params)
-}
-
-export const leaveGroup = (groupId: string) => {
-  return post<Result<null>>(GROUP_API.LEAVE, { group_id: groupId })
-}
-
-export const getGroupMembers = (groupId: string) => {
-  return get<PaginatedResult<GroupMember>>(GROUP_API.MEMBERS(groupId))
-}
-
-export const removeGroupMember = (groupId: string, userId: string) => {
-  return del<Result<null>>(GROUP_API.REMOVE_MEMBER(groupId, userId))
-}
-
-export const setGroupAdmin = (groupId: string, userId: string, isAdmin: boolean) => {
-  return put<Result<null>>(GROUP_API.SET_ROLE(groupId, userId), {
-    role: isAdmin ? 'admin' : 'member'
-  })
-}
-
-// 保活接口
-export const keepAliveInGroup = (data: KeepAliveInGroupRequest): APIResponse<KeepAliveInGroupResponse> =>
-  post(GROUP_API.KEEP_ALIVE, data); 
+/**
+ * 群组保活
+ */
+export const keepAliveInGroup = (data: KeepAliveInGroupRequest) =>
+  post<KeepAliveInGroupResponse, KeepAliveInGroupRequest>(GROUP_API.KEEP_ALIVE, data) 

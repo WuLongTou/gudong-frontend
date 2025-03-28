@@ -7,9 +7,7 @@
                     <el-input v-model="wantedGroupName" placeholder="输入你想搜索的群组吧" @keyup.enter="handleSearch" clearable>
                         <template #append>
                             <el-button type="primary" @click="handleSearch" :loading="searching">
-                                <el-icon>
-                                    <Search />
-                                </el-icon>
+                                <el-icon><Search /></el-icon>
                                 搜索
                             </el-button>
                         </template>
@@ -20,9 +18,7 @@
             <!-- 群组列表 -->
             <el-card class="mt-4">
                 <div class="group-list-container">
-                    <div class="group-list-title">
-                        附近群组列表
-                    </div>
+                    <div class="group-list-title">附近群组列表</div>
                     <GroupList :groups="groupsNearby" :show-join-button="true" @join="handleJoinGroup" show-scroll />
                 </div>
             </el-card>
@@ -58,51 +54,53 @@
         </div>
     </el-dialog>
 </template>
+
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
-import type { GroupInfo, JoinGroupResponse } from '~/types/group_type';
+import type { GroupInfo } from '~/types/api/group';
 import type { MapLocation } from '~/types/map_type';
-import { ref, watch, onMounted, defineEmits, computed } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { createGroup, queryGroupsByName, queryGroupsByLocation, joinGroup } from '~/utils/api/modules/group';
-import { debounce } from 'lodash-es';
 import { useRouter } from 'vue-router';
+import { debounce } from 'lodash-es';
 import GroupList from './GroupList.vue'
-import type { Result } from '~/types/common';
-import { handleApiResponse, handleApiError } from '~/utils/helpers/responseHandler';
-import { useActivity } from '~/composables/useActivity';
+import { 
+  createGroup, getGroupByName, joinGroup 
+} from '~/utils/api/modules/group'
 
 const props = defineProps<{
     location: MapLocation
     locationName: string
-    activeTab?: 'search' | 'create' // 新增属性，用于外部控制显示哪个标签页
+    activeTab?: 'search' | 'create'
+    groups?: GroupInfo[]
 }>()
 
-const emit = defineEmits(['refresh-activities', 'update:activeTab'])
+const emit = defineEmits(['refresh-activities', 'update:activeTab', 'refresh-groups'])
 
-// 通过计算属性来处理双向绑定的activeTab
+// 响应式数据
+const wantedGroupName = ref('')
+const showResults = ref(false);
+const searching = ref(false);
+const searchResults = ref<GroupInfo[]>([]);
+const dialogForm = ref({ name: '' })
+
+const router = useRouter()
+
+// 通过计算属性处理双向绑定
 const activeTabValue = computed({
     get: () => props.activeTab || 'search',
     set: (value) => emit('update:activeTab', value)
 })
 
-const wantedGroupName = ref('')
-const groupsNearby = ref<GroupInfo[]>([])
-const showResults = ref(false);
-const searching = ref(false);
-const searchResults = ref<GroupInfo[]>([]);
-const dialogForm = ref({
-    name: ''
-})
+// 获取群组列表，使用props传入的数据
+const groupsNearby = computed(() => props.groups || [])
 
-const router = useRouter()
-const { fetchRecentActivities } = useActivity()
+// 通知父组件刷新群组数据
+const notifyGroupsRefresh = () => {
+    emit('refresh-groups')
+}
 
-watch(props, () => {
-    getNearbyGroups()
-}, { deep: true })
-
-// 立即执行搜索
+// 搜索群组
 const handleSearch = async () => {
     if (!wantedGroupName.value.trim()) {
         ElMessage.warning('请输入搜索内容')
@@ -112,70 +110,34 @@ const handleSearch = async () => {
     try {
         searching.value = true;
         showResults.value = true;
-        
-        const response = await queryGroupsByName({
-            name: wantedGroupName.value.trim()
-        });
-        
-        const { success, data } = handleApiResponse<GroupInfo[]>(response, {
-            successMessage: '',
-            errorMessage: '搜索失败',
-            showSuccessMessage: false
-        });
-        
-        if (success && data) {
-            searchResults.value = data;
+
+        const response = await getGroupByName(wantedGroupName.value.trim());
+
+        if (response.code === 0 && response.resp_data) {
+            searchResults.value = response.resp_data;
+        } else {
+            ElMessage.error(response.msg || '搜索失败');
         }
     } catch (error) {
-        handleApiError(error, '搜索失败');
+        console.error('搜索失败:', error);
+        ElMessage.error('搜索失败');
     } finally {
         searching.value = false;
     }
 }
 
-// 防抖搜索处理
-const handleSearchInput = debounce(async () => {
-    if (!wantedGroupName.value.trim()) {
-        showResults.value = false;
-        return;
-    }
-
-    handleSearch();
+// 防抖搜索
+const handleSearchInput = debounce(() => {
+    if (wantedGroupName.value.trim()) handleSearch();
+    else showResults.value = false;
 }, 500);
 
-// 获取附近的群组
-const getNearbyGroups = async () => {
-    try {
-        const response = await queryGroupsByLocation({
-            latitude: props.location.latitude,
-            longitude: props.location.longitude,
-            radius: 1000
-        });
-        
-        const { success, data } = handleApiResponse<GroupInfo[]>(response, {
-            successMessage: '',
-            errorMessage: '获取附近群组失败',
-            showSuccessMessage: false
-        });
-        
-        if (success && data) {
-            groupsNearby.value = data;
-        }
-    } catch (error) {
-        handleApiError(error, '获取附近群组失败');
-    }
+// 通知父组件刷新活动数据
+const notifyActivityRefresh = () => {
+    emit('refresh-activities')
 }
 
-// 在群组操作后刷新附近活动
-const refreshActivities = async () => {
-    try {
-        await fetchRecentActivities(props.location, 5000, 20)
-        emit('refresh-activities')
-    } catch (error) {
-        console.error('刷新活动失败', error)
-    }
-}
-
+// 创建群组
 const handleCreateGroup = async () => {
     if (!dialogForm.value.name.trim()) {
         ElMessage.warning('请输入群组名称')
@@ -185,34 +147,32 @@ const handleCreateGroup = async () => {
     try {
         const response = await createGroup({
             name: dialogForm.value.name.trim(),
+            location_name: props.locationName,
+            latitude: props.location.latitude,
+            longitude: props.location.longitude,
             description: '',
-            isPublic: true,
-            location: {
-                latitude: props.location.latitude,
-                longitude: props.location.longitude
-            }
+            password: undefined
         });
-        
-        const { success } = handleApiResponse<GroupInfo>(response, {
-            successMessage: '创建成功',
-            errorMessage: '创建群组失败'
-        });
-        
-        if (success) {
-            dialogForm.value.name = '' // 清空表单
-            getNearbyGroups() // 刷新列表
-            await refreshActivities() // 刷新活动列表
-            // 创建成功后切换到搜索标签页
+
+        if (response.code === 0) {
+            ElMessage.success('创建成功');
+            dialogForm.value.name = ''
+            notifyGroupsRefresh()
+            notifyActivityRefresh()
             activeTabValue.value = 'search'
+        } else {
+            ElMessage.error(response.msg || '创建群组失败');
         }
     } catch (error) {
-        handleApiError(error, '创建群组失败');
+        console.error('创建群组失败:', error);
+        ElMessage.error('创建群组失败');
     }
 }
 
+// 加入群组
 async function handleJoinGroup(group: GroupInfo) {
     showResults.value = false;
-    
+
     try {
         if (group.is_need_password) {
             ElMessageBox.prompt('请输入密码', {
@@ -220,9 +180,7 @@ async function handleJoinGroup(group: GroupInfo) {
                 cancelButtonText: '取消',
                 inputPattern: /^\d{6}$/,
                 inputErrorMessage: '密码必须为6位数字'
-            }).then(async ({ value }) => {
-                await joinGroupAndNavigate(group.group_id, value);
-            });
+            }).then(({ value }) => joinGroupAndNavigate(group.group_id, value));
         } else {
             await joinGroupAndNavigate(group.group_id);
         }
@@ -232,42 +190,38 @@ async function handleJoinGroup(group: GroupInfo) {
     }
 }
 
-// 提取共用的加入群组和导航逻辑
+// 加入群组并导航
 async function joinGroupAndNavigate(groupId: string, password?: string) {
-    const params: any = { groupId };
-    if (password) params.password = password;
-    
     try {
-        const response = await joinGroup(params);
+        const response = await joinGroup({ group_id: groupId, password });
         
-        const { success } = handleApiResponse<JoinGroupResponse>(response, {
-            successMessage: '加入成功',
-            errorMessage: '加入群组失败'
-        });
-        
-        if (success) {
-            getNearbyGroups(); // 刷新列表
-            await refreshActivities(); // 刷新活动列表
-            // 导航到群聊页面
-            router.push(`/group_chat?groupId=${groupId}`);
+        if (response.code === 0) {
+            ElMessage.success('加入成功');
+            notifyGroupsRefresh();
+            notifyActivityRefresh();
+            router.push(`/group_chat?group_id=${groupId}`);
+        } else {
+            ElMessage.error(response.msg || '加入群组失败');
         }
     } catch (error) {
-        handleApiError(error, '加入群组失败');
+        console.error('加入群组失败:', error);
+        ElMessage.error('加入群组失败');
     }
 }
 
-// 监听搜索框内容变化，实现防抖搜索
+// 监听搜索框内容变化
 watch(wantedGroupName, handleSearchInput)
 
-// 监听切换标签页时，如果切换到创建页面且搜索框有内容，自动填充到创建框
+// 监听标签页切换
 watch(activeTabValue, (newVal) => {
     if (newVal === 'create' && wantedGroupName.value.trim()) {
         dialogForm.value.name = wantedGroupName.value.trim()
     }
 })
 
+// 组件挂载时通知父组件刷新群组数据
 onMounted(() => {
-    getNearbyGroups()
+    notifyGroupsRefresh()
 })
 </script>
 
@@ -314,7 +268,12 @@ onMounted(() => {
     margin-top: 1rem;
 }
 
-// 媒体查询使用混合器
+.group-location-info {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
 @include m.mobile {
     .search-container {
         flex-direction: column;
@@ -325,25 +284,21 @@ onMounted(() => {
         width: 100%;
     }
 
-    // 调整对话框宽度 - 使用更具体的选择器提高优先级
     :deep(.el-dialog.search-dialog) {
         width: 90%;
         max-width: 90vw;
     }
 
-    // 调整表单项间距
     :deep(.el-form-item) {
         margin-bottom: var(--spacing-md);
     }
 
-    // 调整输入框大小
     :deep(.el-input__inner) {
         font-size: var(--font-size-sm);
         height: 2.5rem;
     }
 }
 
-// 针对小屏幕设备的优化
 @media (max-height: 600px) {
     .group-card {
         margin-bottom: var(--spacing-sm);
@@ -352,12 +307,5 @@ onMounted(() => {
     :deep(.el-card__body) {
         padding: var(--spacing-md);
     }
-}
-
-// 添加此类的样式定义
-.group-location-info {
-    color: #6b7280;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
 }
 </style>

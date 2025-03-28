@@ -91,8 +91,8 @@ frontend/
 - **🔒 安全认证**：JWT认证与自动刷新
 - **📱 响应式设计**：支持多种设备
 - **🌐 地图功能**：集成高德地图
-- **💬 实时通讯**：群组聊天功能
-- **�� 模块化设计**：清晰的代码组织结构
+- **�� 实时通讯**：群组聊天功能
+- **🌐 模块化设计**：清晰的代码组织结构
 
 # GeoChat - 实时地理位置社交应用
 
@@ -173,3 +173,40 @@ pnpm preview
 
 ## 隐私声明
 本应用严格遵循W3C地理位置服务标准，用户位置数据需明确授权后使用
+
+## API类型规范
+
+为确保前后端接口类型定义一致且明确，我们采用以下规范：
+
+### 类型命名规范
+
+- 类型命名应与后端保持一致，避免不同名称表示相同概念
+- API返回类型：统一使用`ApiResponse<T>`与后端保持一致
+- 请求类型: `XxxRequest`，例如 `CreateUserRequest`
+- 响应类型: `XxxResponse`，例如 `CreateUserResponse`
+- 对于没有请求体的请求，使用 `EmptyRequest` 类型
+- 对于没有响应体的响应，使用 `EmptyResponse` 类型
+
+### API函数规范
+
+所有API调用函数应明确定义请求和响应类型：
+
+```typescript
+// 标准格式
+export const apiFunction = (params: RequestType): Promise<ApiResponse<ResponseType>> =>
+  method<ResponseType, RequestType>(API_PATH, params);
+
+// 无请求体示例
+export const apiFunction = (): Promise<ApiResponse<ResponseType>> =>
+  method<ResponseType, EmptyRequest>(API_PATH, {});
+
+// 无响应体示例
+export const apiFunction = (params: RequestType): Promise<ApiResponse<EmptyResponse>> =>
+  method<EmptyResponse, RequestType>(API_PATH, params);
+```
+
+通过统一的类型定义，我们确保了：
+1. 前后端数据结构一致性
+2. TypeScript 提供更准确的类型检查
+3. IDE 提供更好的代码补全和错误提示
+4. 代码可读性和可维护性更高

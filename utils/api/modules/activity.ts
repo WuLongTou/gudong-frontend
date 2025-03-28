@@ -1,80 +1,49 @@
 import { get, post } from '../request'
-import type { Result } from '~/types/common'
-import type { PaginatedResult, GeoLocation } from '~/types/api'
+import type { ApiResponse } from '~/types/common'
 import { ACTIVITY_API, USER_API } from '../paths'
-
-export interface Activity {
-  id: string
-  userId: string
-  userNickname: string
-  userAvatarUrl?: string
-  type: string
-  content?: string
-  location: GeoLocation
-  createdAt: string
-}
-
-export interface NearbyUser {
-  id: string
-  nickname: string
-  avatarUrl?: string
-  motto?: string
-  lastActiveAt: string
-  location: GeoLocation
-  distance: number
-}
-
-export interface CreateActivityParams {
-  type: string
-  content?: string
-  location: GeoLocation
-}
-
-export interface GetNearbyParams {
-  location: GeoLocation
-  radius?: number
-  limit?: number
-}
+import type {
+  CreateUserActivityRequest,
+  GetNearbyActivitiesRequest,
+  FindNearbyUsersRequest,
+  FindUserActivitiesRequest,
+  ActivityDetail,
+  NearbyUser,
+  GetNearbyActivitiesResponse,
+  CreateUserActivityResponse,
+  FindNearbyUsersResponse,
+  FindUserActivitiesResponse
+} from '~/types/api/activity'
+import type { EmptyRequest } from '../request'
 
 /**
  * 创建活动
  */
-export const createActivity = (params: CreateActivityParams) => {
-  return post<Result<Activity>>(ACTIVITY_API.CREATE, params)
-}
+export const createActivity = (params: CreateUserActivityRequest): Promise<ApiResponse<CreateUserActivityResponse>> =>
+  post<CreateUserActivityResponse, CreateUserActivityRequest>(ACTIVITY_API.CREATE, params);
 
 /**
  * 获取附近活动
  */
-export const getNearbyActivities = (params: GetNearbyParams) => {
-  return get<PaginatedResult<Activity>>(ACTIVITY_API.NEARBY, {
-    ...params.location,
-    radius: params.radius,
-    limit: params.limit
-  })
-}
+export const getNearbyActivities = (params: GetNearbyActivitiesRequest): Promise<ApiResponse<GetNearbyActivitiesResponse>> =>
+  get<GetNearbyActivitiesResponse, GetNearbyActivitiesRequest>(ACTIVITY_API.NEARBY, params);
 
 /**
  * 获取附近用户
  */
-export const getNearbyUsers = (params: GetNearbyParams) => {
-  return get<PaginatedResult<NearbyUser>>(USER_API.NEARBY, {
-    ...params.location,
-    radius: params.radius,
-    limit: params.limit
-  })
-}
+export const getNearbyUsers = (params: FindNearbyUsersRequest): Promise<ApiResponse<FindNearbyUsersResponse>> =>
+  get<FindNearbyUsersResponse, FindNearbyUsersRequest>(USER_API.NEARBY, params);
 
 /**
  * 获取用户活动历史
  */
-export const getUserActivities = (userId: string) => {
-  return get<PaginatedResult<Activity>>(USER_API.USER_ACTIVITIES(userId))
-}
+export const getUserActivities = (userId: string): Promise<ApiResponse<FindUserActivitiesResponse>> =>
+  get<FindUserActivitiesResponse, FindUserActivitiesRequest>(
+    USER_API.USER_ACTIVITIES(userId), 
+    { limit: 20 }
+  );
 
 /**
  * 获取当前用户活动历史
  */
-export const getMyActivities = () => {
-  return get<PaginatedResult<Activity>>(USER_API.MY_ACTIVITIES)
-} 
+export const getMyActivities = (limit: number = 20): Promise<ApiResponse<FindUserActivitiesResponse>> =>
+  get<FindUserActivitiesResponse, FindUserActivitiesRequest>(USER_API.MY_ACTIVITIES, { limit }); 

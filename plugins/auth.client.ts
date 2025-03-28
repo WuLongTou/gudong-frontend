@@ -1,6 +1,6 @@
 // import type { StorageAdapter } from '~/plugins/storage.client';
 import { startTokenRefreshTimer, stopTokenRefreshTimer } from '~/utils/auth/jwt.client';
-import { SESSION_TOKEN_KEY, USER_ID_KEY, NICKNAME_KEY } from '~/utils/auth/token';
+import { SESSION_TOKEN_KEY, USER_ID_KEY, NICKNAME_KEY, EXPIRES_AT_KEY } from '~/utils/auth/token';
 import { useUserStore } from '~/stores/user';
 import { defineNuxtPlugin, useNuxtApp } from '#app';
 import { ElMessage, ElMessageBox } from 'element-plus';

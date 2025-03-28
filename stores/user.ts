@@ -7,6 +7,7 @@ export const useUserStore = defineStore('user', {
     nickname: '',
     sessionToken: '',
     isTemporary: false,
+    expiresAt: 0,
   }),
 
   persist: true,
@@ -26,11 +27,12 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    setUser(userId: string, nickname: string, token: string, isTemporary: boolean) {
+    setUser(userId: string, nickname: string, token: string, isTemporary: boolean, expiresAt?: number) {
       this.userId = userId
       this.nickname = nickname
       this.sessionToken = token
       this.isTemporary = isTemporary
+      this.expiresAt = expiresAt || 0
       
       this.initTokenRefresh()
     },
@@ -40,6 +42,7 @@ export const useUserStore = defineStore('user', {
       this.nickname = ''
       this.sessionToken = ''
       this.isTemporary = false
+      this.expiresAt = 0
       
       stopTokenRefreshTimer()
     }

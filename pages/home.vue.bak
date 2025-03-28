@@ -146,9 +146,9 @@ import CreateActivityButton from '~/components/features/activity/CreateActivityB
 import ActivitySidebar from '~/components/layout/Sidebar/ActivitySidebar.vue'
 import ActivityList from '~/components/features/activity/ActivityList.vue'
 import FloatingMenu from '~/components/layout/FloatMenu/FloatingMenu.vue'
-import { ActivityType } from '~/types/api/activity'
-import type { ActivityDetail } from '~/types/api/activity'
-import type { NearbyGroup } from '~/types/api/group'
+import { ActivityType } from '~/types/activity_type'
+import type { ActivityDetail } from '~/types/activity_type'
+import type { NearbyGroup } from '~/types/group_type'
 import { useMapStore } from '~/stores/map'
 import type { MapLocation } from '~/types/map_type'
 
@@ -233,21 +233,27 @@ const fetchNearbyUsers = async (location: MapLocation, radius: number = 5000, li
         })
 
         if (response.code === 0 && response.resp_data) {
-            // 直接处理后端返回的数据
-            const users = response.resp_data.users || [];
-            
-            // 使用统一的数据处理方法
-            nearbyUsers.value = users.map((user: any) => processActivityData({
-              user_id: user.user_id,
-              nickname: user.nickname,
-              avatar_url: user.avatar_url,
-              last_active_at: user.last_active_at || (user.last_activity?.occurred_at),
-              activity_type: ActivityType.UserCheckedIn,
-              description: `${user.nickname || '用户'}在附近活动`,
-              distance: user.distance,
-              latitude: location.latitude,
-              longitude: location.longitude
-            }))
+            // 使用as any避免类型错误
+            const data = response.resp_data as any
+
+            // 检查数据格式并进行相应处理
+            if (data && typeof data === 'object') {
+                const items = Array.isArray(data) ? data :
+                    (data.items && Array.isArray(data.items) ? data.items : [])
+
+                // 使用统一的数据处理方法
+                nearbyUsers.value = items.map((user: any) => processActivityData({
+                  user_id: user.user_id,
+                  nickname: user.nickname,
+                  avatar_url: user.avatar_url,
+                  last_active_at: user.last_active_at,
+                  activity_type: ActivityType.UserCheckedIn,
+                  description: `${user.nickname || '用户'}在附近活动`,
+                  distance: user.distance,
+                  latitude: location.latitude,
+                  longitude: location.longitude
+                }))
+            }
         } else {
             error.users = response.msg || '获取附近用户失败'
         }

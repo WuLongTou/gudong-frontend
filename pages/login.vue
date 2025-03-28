@@ -69,11 +69,25 @@
                 <span>或者</span>
             </div>
 
-            <!-- 访客入口 -->
-            <el-button type="success" plain @click="handleGuestEntry" class="guest-button" :loading="isGuestLoading"
-                round>
-                立即体验（临时账号）
-            </el-button>
+            <!-- 临时账号昵称输入 -->
+            <div class="guest-input-container">
+                <el-input 
+                    v-model="guestNickname" 
+                    placeholder="输入临时昵称（可选）" 
+                    clearable 
+                    :prefix-icon="Avatar"
+                    class="guest-input" 
+                />
+                <el-button 
+                    type="success" 
+                    plain 
+                    @click="handleGuestEntry" 
+                    class="guest-button" 
+                    :loading="isGuestLoading"
+                    round>
+                    立即体验（临时账号）
+                </el-button>
+            </div>
 
             <div class="footer-note">
                 选择"立即体验"将使用临时会话，关闭浏览器后数据将清除
@@ -98,6 +112,7 @@ const activeTab = ref('login');
 const isLoginSubmitting = ref(false);
 const isRegisterSubmitting = ref(false);
 const isGuestLoading = ref(false);
+const guestNickname = ref(''); // 临时用户昵称
 
 
 // 登录表单数据
@@ -128,7 +143,11 @@ onMounted(() => {
 const handleGuestEntry = async () => {
     try {
         isGuestLoading.value = true;
-        const result = await createTemporaryUser();
+        // 如果用户提供了昵称，则将其传递给API
+        const result = await createTemporaryUser({
+            nickname: guestNickname.value ? guestNickname.value : undefined
+        });
+        
         if (result.code === 0) {
             userStore.setUser(
                 result.resp_data.user_id,
@@ -282,4 +301,19 @@ const validateRegisterForm = () => {
     }
 }
 
+.guest-input-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.guest-input {
+    width: 100%;
+}
+
+.guest-button {
+    width: 100%;
+}
 </style>
